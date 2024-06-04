@@ -1,14 +1,18 @@
+# -*- coding: utf-8 -*-
+
+"""
+    InterceptResolver - proxy requests to upstream server
+                        (optionally intercepting)
+
+"""
+from __future__ import print_function
+
 import copy
 import socket
+import sys
 
 from dnslib import QTYPE, RCODE, RR, DNSRecord, parse_time
 from dnslib.server import BaseResolver, DNSHandler, DNSLogger, DNSServer
-
-
-__doc__ = """
-    InterceptResolver - proxy requests to upstream server
-                        (optionally intercepting)
-"""
 
 
 class InterceptResolver(BaseResolver):
@@ -58,7 +62,7 @@ class InterceptResolver(BaseResolver):
         for i in intercept:
             if i == "-":
                 i = sys.stdin.read()
-            for rr in RR.from_zone(i, ttl=self.ttl):
+            for rr in RR.fromZone(i, ttl=self.ttl):
                 self.zone.append((rr.rname, QTYPE[rr.rtype], rr))
 
     def resolve(self, request, handler):
@@ -67,25 +71,25 @@ class InterceptResolver(BaseResolver):
         qname = request.q.qname
         qtype = QTYPE[request.q.qtype]
         # Try to resolve locally unless on skip list
-        if not any([qname.match_glob(s) for s in self.skip]):
+        if not any([qname.matchGlob(s) for s in self.skip]):
             for name, rtype, rr in self.zone:
-                if qname.match_glob(name):
+                if qname.matchGlob(name):
                     if qtype in (rtype, "ANY", "CNAME"):
                         a = copy.copy(rr)
                         a.rname = qname
                         reply.add_answer(a)
                     matched = True
         # Check for NXDOMAIN
-        if any([qname.match_glob(s) for s in self.nxdomain]):
+        if any([qname.matchGlob(s) for s in self.nxdomain]):
             reply.header.rcode = getattr(RCODE, "NXDOMAIN")
             return reply
         if matched and self.all_qtypes:
             return reply
         # Otherwise proxy, first checking forwards, then to upstream.
         upstream, upstream_port = self.address, self.port
-        if not any([qname.match_glob(s) for s in self.skip]):
+        if not any([qname.matchGlob(s) for s in self.skip]):
             for name, ip, port in self.forward:
-                if qname.match_glob(name):
+                if qname.matchGlob(name):
                     upstream, upstream_port = ip, port
         if not reply.rr:
             try:
@@ -233,7 +237,7 @@ if __name__ == "__main__":
     )
 
     for rr in resolver.zone:
-        print("    | ", rr[2].to_zone(), sep="")
+        print("    | ", rr[2].toZone(), sep="")
     if resolver.nxdomain:
         print("    NXDOMAIN:", ", ".join(resolver.nxdomain))
     if resolver.skip:
@@ -269,5 +273,5 @@ if __name__ == "__main__":
         )
         tcp_server.start_thread()
 
-    while udp_server.is_alive():
+    while udp_server.isAlive():
         time.sleep(1)

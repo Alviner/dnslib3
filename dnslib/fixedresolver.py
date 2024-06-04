@@ -1,13 +1,16 @@
+# -*- coding: utf-8 -*-
+
+"""
+    FixedResolver - example resolver which responds with fixed response
+                    to all requests
+"""
+
+from __future__ import print_function
+
 import copy
 
 from dnslib import RR
 from dnslib.server import BaseResolver, DNSHandler, DNSLogger, DNSServer
-
-
-__doc__ = """
-    FixedResolver - example resolver which responds with fixed response
-                    to all requests
-"""
 
 
 class FixedResolver(BaseResolver):
@@ -17,7 +20,7 @@ class FixedResolver(BaseResolver):
 
     def __init__(self, zone):
         # Parse RRs
-        self.rrs = RR.from_zone(zone)
+        self.rrs = RR.fromZone(zone)
 
     def resolve(self, request, handler):
         reply = request.reply()
@@ -110,7 +113,7 @@ if __name__ == "__main__":
     )
 
     for rr in resolver.rrs:
-        print("    | ", rr.to_zone().strip(), sep="")
+        print("    | ", rr.toZone().strip(), sep="")
     print()
 
     if args.udplen:
@@ -134,5 +137,5 @@ if __name__ == "__main__":
         )
         tcp_server.start_thread()
 
-    while udp_server.is_alive():
+    while udp_server.isAlive():
         time.sleep(1)

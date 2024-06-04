@@ -1,13 +1,6 @@
-from subprocess import getoutput, getstatusoutput
+# -*- coding: utf-8 -*-
 
-import binascii
-import code
-
-from dnslib.digparser import DigParser
-from dnslib.dns import EDNS0, QTYPE, DNSError, DNSHeader, DNSQuestion, DNSRecord
-
-
-__doc__ = """
+"""
     DNS Client - DiG-like CLI utility.
 
     Mostly useful for testing. Can optionally compare results from two
@@ -17,6 +10,20 @@ __doc__ = """
 
     See --help for usage.
 """
+
+from __future__ import print_function
+
+
+try:
+    from subprocess import getoutput, getstatusoutput
+except ImportError:
+    from commands import getoutput, getstatusoutput
+
+import binascii
+import code
+
+from dnslib.digparser import DigParser
+from dnslib.dns import EDNS0, QTYPE, DNSError, DNSHeader, DNSQuestion, DNSRecord
 
 
 if __name__ == "__main__":

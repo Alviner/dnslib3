@@ -1,15 +1,6 @@
-import binascii
-import socket
-import struct
-import threading
-import time
-import socketserver
+# -*- coding: utf-8 -*-
 
-
-from dnslib import QTYPE, RCODE, DNSError, DNSRecord
-
-
-__doc__ = """
+"""
     DNS server framework - intended to simplify creation of custom resolvers.
 
     Comprises the following components:
@@ -88,7 +79,7 @@ __doc__ = """
         >>> class TestResolver:
         ...     def resolve(self,request,handler):
         ...         reply = request.reply()
-        ...         reply.add_answer(*RR.from_zone("abc.def. 60 A 1.2.3.4"))
+        ...         reply.add_answer(*RR.fromZone("abc.def. 60 A 1.2.3.4"))
         ...         return reply
         >>> resolver = TestResolver()
         >>> logger = DNSLogger(prefix=False)
@@ -108,6 +99,21 @@ __doc__ = """
 
 
 """
+from __future__ import print_function
+
+import binascii
+import socket
+import struct
+import threading
+import time
+
+
+try:
+    import socketserver
+except ImportError:
+    import SocketServer as socketserver
+
+from dnslib import QTYPE, RCODE, DNSError, DNSRecord
 
 
 class BaseResolver(object):
@@ -363,7 +369,7 @@ class DNSLogger:
         )
 
     def log_data(self, dnsobj):
-        self.logf("\n%s\n" % (dnsobj.to_zone("    ")))
+        self.logf("\n%s\n" % (dnsobj.toZone("    ")))
 
 
 class UDPServer(socketserver.ThreadingMixIn, socketserver.UDPServer, object):
@@ -398,8 +404,6 @@ class DNSServer(object):
     In most cases only a custom resolver instance is required
     (and possibly logger)
     """
-
-    thread: threading.Thread
 
     def __init__(
         self,
@@ -440,7 +444,7 @@ class DNSServer(object):
     def stop(self):
         self.server.shutdown()
 
-    def is_alive(self):
+    def isAlive(self):
         return self.thread.is_alive()
 
 

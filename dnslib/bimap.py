@@ -1,7 +1,10 @@
-__doc__ = """
+# -*- coding: utf-8 -*-
+
+"""
     Bimap - bidirectional mapping between code/value
 """
 
+import sys
 import types
 
 

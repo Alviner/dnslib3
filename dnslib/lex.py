@@ -1,6 +1,15 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import print_function
+
 import collections
 import string
-from io import StringIO
+
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 
 class Lexer(object):
@@ -53,7 +62,7 @@ class Lexer(object):
             raise ValueError("Invalid input")
         self.debug = debug
         self.q = collections.deque()
-        self.state = self.lex_start
+        self.state = self.lexStart
         self.escaped = False
         self.eof = False
 
@@ -128,7 +137,7 @@ class Lexer(object):
             self.escaped = False
             return c
 
-    def lex_start(self):
+    def lexStart(self):
         return (None, None)
 
 
@@ -159,10 +168,10 @@ class WordLexer(Lexer):
     spacetok = None
     nltok = None
 
-    def lex_start(self):
-        return (None, self.lex_space)
+    def lexStart(self):
+        return (None, self.lexSpace)
 
-    def lex_space(self):
+    def lexSpace(self):
         s = []
         if self.spacetok:
             tok = lambda n: (self.spacetok, n) if s else (None, n)
@@ -173,13 +182,13 @@ class WordLexer(Lexer):
             if c in self.spacechars:
                 s.append(self.read())
             elif c in self.nlchars:
-                return tok(self.lex_nl)
+                return tok(self.lexNL)
             elif c in self.commentchars:
-                return tok(self.lex_comment)
+                return tok(self.lexComment)
             elif c in self.quotechars:
-                return tok(self.lex_quote)
+                return tok(self.lexQuote)
             elif c in self.wordchars:
-                return tok(self.lex_word)
+                return tok(self.lexWord)
             elif c:
                 raise ValueError(
                     "Invalid input [%d]: %s"
@@ -190,14 +199,14 @@ class WordLexer(Lexer):
                 )
         return (None, None)
 
-    def lex_nl(self):
+    def lexNL(self):
         while True:
             c = self.read()
             if c not in self.nlchars:
                 self.pushback(c)
-                return (self.nltok, self.lex_space)
+                return (self.nltok, self.lexSpace)
 
-    def lex_comment(self):
+    def lexComment(self):
         s = []
         tok = lambda n: (("COMMENT", "".join(s)), n) if s else (None, n)
         start = False
@@ -206,23 +215,23 @@ class WordLexer(Lexer):
             c = self.read()
             if c == "\n":
                 self.pushback(c)
-                return tok(self.lex_nl)
+                return tok(self.lexNL)
             elif start or c not in string.whitespace:
                 start = True
                 s.append(c)
         return tok(None)
 
-    def lex_word(self):
+    def lexWord(self):
         s = []
         tok = lambda n: (("ATOM", "".join(s)), n) if s else (None, n)
         while not self.eof:
             c = self.peek()
             if c == '"':
-                return tok(self.lex_quote)
+                return tok(self.lexQuote)
             elif c in self.commentchars:
-                return tok(self.lex_comment)
+                return tok(self.lexComment)
             elif c.isspace():
-                return tok(self.lex_space)
+                return tok(self.lexSpace)
             elif c in self.wordchars:
                 s.append(self.read())
             elif c:
@@ -235,7 +244,7 @@ class WordLexer(Lexer):
                 )
         return tok(None)
 
-    def lex_quote(self):
+    def lexQuote(self):
         s = []
         tok = lambda n: (("ATOM", "".join(s)), n)
         q = self.read(1)
@@ -245,7 +254,7 @@ class WordLexer(Lexer):
                 break
             else:
                 s.append(c)
-        return tok(self.lex_space)
+        return tok(self.lexSpace)
 
 
 class RandomLexer(Lexer):
@@ -269,24 +278,24 @@ class RandomLexer(Lexer):
     minalpha = 4
     mindigits = 3
 
-    def lex_start(self):
-        return (None, self.lex_random)
+    def lexStart(self):
+        return (None, self.lexRandom)
 
-    def lex_random(self):
+    def lexRandom(self):
         n = 0
         c = self.peek(1)
         while not self.eof:
             if c.isalpha():
-                return (None, self.lex_alpha)
+                return (None, self.lexAlpha)
             elif c.isdigit():
-                return (None, self.lex_digits)
+                return (None, self.lexDigits)
             else:
                 n += 1
                 _ = self.read(1)
                 c = self.peek(1)
         return (None, None)
 
-    def lex_digits(self):
+    def lexDigits(self):
         s = []
         c = self.read(1)
         while c.isdigit():
@@ -294,11 +303,11 @@ class RandomLexer(Lexer):
             c = self.read(1)
         self.pushback(c)
         if len(s) >= self.mindigits:
-            return (("NUMBER", "".join(s)), self.lex_random)
+            return (("NUMBER", "".join(s)), self.lexRandom)
         else:
-            return (None, self.lex_random)
+            return (None, self.lexRandom)
 
-    def lex_alpha(self):
+    def lexAlpha(self):
         s = []
         c = self.read(1)
         while c.isalpha():
@@ -306,9 +315,9 @@ class RandomLexer(Lexer):
             c = self.read(1)
         self.pushback(c)
         if len(s) >= self.minalpha:
-            return (("STRING", "".join(s)), self.lex_random)
+            return (("STRING", "".join(s)), self.lexRandom)
         else:
-            return (None, self.lex_random)
+            return (None, self.lexRandom)
 
 
 if __name__ == "__main__":

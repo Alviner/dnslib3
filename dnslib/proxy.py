@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import print_function
+
 import socket
 import struct
 
@@ -225,5 +229,5 @@ if __name__ == "__main__":
         )
         tcp_server.start_thread()
 
-    while udp_server.is_alive():
+    while udp_server.isAlive():
         time.sleep(1)

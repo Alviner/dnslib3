@@ -1,4 +1,10 @@
-__doc__ = """ Some basic bit mainpulation utilities """
+# -*- coding: utf-8 -*-
+
+"""
+    Some basic bit mainpulation utilities
+"""
+from __future__ import print_function
+
 
 FILTER = bytearray([(i < 32 or i > 127) and 46 or i for i in range(256)])
 

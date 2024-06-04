@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import print_function
+
 import copy
 
 from dnslib import QTYPE, RCODE, RR
@@ -15,7 +19,7 @@ class ZoneResolver(BaseResolver):
         Stores RRs as a list of (label,type,rr) tuples
         If 'glob' is True use glob match against zone file
         """
-        self.zone = [(rr.rname, QTYPE[rr.rtype], rr) for rr in RR.from_zone(zone)]
+        self.zone = [(rr.rname, QTYPE[rr.rtype], rr) for rr in RR.fromZone(zone)]
         self.glob = glob
         self.eq = "matchGlob" if glob else "__eq__"
 
@@ -129,7 +133,7 @@ if __name__ == "__main__":
     )
 
     for rr in resolver.zone:
-        print("    | ", rr[2].to_zone(), sep="")
+        print("    | ", rr[2].toZone(), sep="")
     print()
 
     if args.udplen:
@@ -153,5 +157,5 @@ if __name__ == "__main__":
         )
         tcp_server.start_thread()
 
-    while udp_server.is_alive():
+    while udp_server.isAlive():
         time.sleep(1)
