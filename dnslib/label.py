@@ -9,11 +9,6 @@ __doc__ = """
 """
 
 
-__doc__ = """
-    DNSLabel/DNSBuffer - DNS label handling & encoding/decoding
-"""
-
-
 # In theory valid label characters should be letters,digits,hyphen,underscore (LDH)
 # LDH = set(bytearray(b'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'))
 # For compatibility we only escape non-printable characters

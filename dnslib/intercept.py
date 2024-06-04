@@ -10,12 +10,6 @@ __doc__ = """
 """
 
 
-__doc__ = """
-    InterceptResolver - proxy requests to upstream server
-                        (optionally intercepting)
-"""
-
-
 class InterceptResolver(BaseResolver):
     """
     Intercepting resolver
