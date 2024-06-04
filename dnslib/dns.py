@@ -1,39 +1,25 @@
-"""
-    DNS - main dnslib module
-
-    Contains core DNS packet handling code
-"""
-
-from __future__ import print_function
-
 import base64
 import binascii
 import calendar
-import collections
-import copy
-import os.path
 import random
 import socket
-import string
 import struct
-import textwrap
 import time
 from itertools import chain
-
-
-try:
-    from itertools import zip_longest
-except ImportError:
-    from itertools import izip_longest as zip_longest
 
 from dnslib.bimap import Bimap, BimapError
 from dnslib.bit import get_bits, set_bits
 from dnslib.buffer import Buffer
-from dnslib.label import DNSBuffer, DNSLabel, DNSLabelError
+from dnslib.label import DNSBuffer, DNSLabel
 from dnslib.lex import WordLexer
-from dnslib.ranges import (
-    B, H, I, bytes_property, check_bytes, check_range, ipv4, ipv6, ntuple_range,
-)
+from dnslib.ranges import B, H, I, bytes_property, check_bytes, check_range, ipv4, ipv6, ntuple_range
+
+
+__doc__ = """
+    DNS - main dnslib module
+
+    Contains core DNS packet handling code
+"""
 
 
 class DNSError(Exception):
@@ -2349,7 +2335,7 @@ class HTTPS(RD):
     def zf_tostr(cls, b):
         return b.decode("ASCII")
 
-    paramkeys = [
+    paramkeys = (
         (0, b"mandatory"),
         (1, b"alpn"),
         (2, b"no-default-alpn"),
@@ -2357,7 +2343,7 @@ class HTTPS(RD):
         (4, b"ipv4hint"),
         (5, b"echconfig"),
         (6, b"ipv6hint"),
-    ]
+    )
 
     @classmethod
     def zf_parse_key(cls, k):

@@ -12,7 +12,7 @@ class BimapError(Exception):
     pass
 
 
-class Bimap(object):
+class Bimap:
     """
     Bi-directional mapping between code/text.
 
