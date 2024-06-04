@@ -179,7 +179,7 @@ format defined in RFC1035 (specifically not $INCLUDE)
     ...                 IN      TXT     "Some Text"
     ...         mail    IN      CNAME   www.abc.com.
     ... '''
-    >>> for rr in RR.fromZone(textwrap.dedent(z)):
+    >>> for rr in RR.from_one(textwrap.dedent(z)):
     ...     print(rr)
     abc.com.                300     IN      MX      10 mail.abc.com.
     www.abc.com.            300     IN      A       1.2.3.4

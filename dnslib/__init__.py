@@ -164,7 +164,7 @@ To create a DNS Response Packet:
 
 It is also possible to create RRs from a string in zone file format
 
-    >>> RR.fromZone("abc.com IN A 1.2.3.4")
+    >>> RR.from_zone("abc.com IN A 1.2.3.4")
     [<DNS RR: 'abc.com.' rtype=A rclass=IN ttl=0 rdata='1.2.3.4'>]
 
     (Note: this produces a list of RRs which should be unpacked if being
@@ -172,7 +172,7 @@ It is also possible to create RRs from a string in zone file format
 
     >>> q = DNSRecord.question("abc.com")
     >>> a = q.reply()
-    >>> a.add_answer(*RR.fromZone("abc.com 60 A 1.2.3.4"))
+    >>> a.add_answer(*RR.from_zone("abc.com 60 A 1.2.3.4"))
     >>> print(a)
     ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: ...
     ;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
@@ -193,7 +193,7 @@ format defined in RFC1035 (specifically not $INCLUDE)
     ...                 IN      TXT     "Some Text"
     ...         mail    IN      CNAME   www.abc.com.
     ... '''
-    >>> for rr in RR.fromZone(textwrap.dedent(z)):
+    >>> for rr in RR.from_zone(textwrap.dedent(z)):
     ...     print(rr)
     abc.com.                300     IN      MX      10 mail.abc.com.
     www.abc.com.            300     IN      A       1.2.3.4
