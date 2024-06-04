@@ -9,6 +9,12 @@ __doc__ = """
 """
 
 
+__doc__ = """
+    FixedResolver - example resolver which responds with fixed response
+                    to all requests
+"""
+
+
 class FixedResolver(BaseResolver):
     """
     Respond with fixed response to all requests
