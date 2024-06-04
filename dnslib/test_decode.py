@@ -54,10 +54,11 @@ import code
 import glob
 import os.path
 import unittest
-from subprocess import getoutput
 
 from dnslib.digparser import DigParser
 from dnslib.dns import EDNS0, DNSRecord
+
+from subprocess import getoutput
 
 
 class TestContainer(unittest.TestCase):

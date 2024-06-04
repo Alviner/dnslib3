@@ -1,9 +1,10 @@
 import binascii
 import socket
-import socketserver
 import struct
 import threading
 import time
+import socketserver
+
 
 from dnslib import QTYPE, RCODE, DNSError, DNSRecord
 

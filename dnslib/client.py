@@ -1,6 +1,7 @@
+from subprocess import getoutput, getstatusoutput
+
 import binascii
 import code
-from subprocess import getoutput, getstatusoutput
 
 from dnslib.digparser import DigParser
 from dnslib.dns import EDNS0, QTYPE, DNSError, DNSHeader, DNSQuestion, DNSRecord
@@ -119,7 +120,7 @@ if __name__ == "__main__":
 
         if q.header.id != a.header.id:
             raise DNSError(
-                "Response transaction id does not match query transaction id",
+                "Response transaction id does not match query transaction id"
             )
 
         if a.header.tc and args.noretry == False:
