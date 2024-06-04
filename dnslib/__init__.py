@@ -235,7 +235,7 @@ Add additional RRs:
 It is also possible to create a reply from a string in zone file format:
 
     >>> q = DNSRecord(q=DNSQuestion("abc.com",QTYPE.ANY))
-    >>> a = q.replyZone("abc.com 60 IN CNAME xxx.abc.com")
+    >>> a = q.reply_zone("abc.com 60 IN CNAME xxx.abc.com")
     >>> print(a)
     ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: ...
     ;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
@@ -248,7 +248,7 @@ It is also possible to create a reply from a string in zone file format:
     True
 
     >>> q = DNSRecord(q=DNSQuestion("abc.com",QTYPE.ANY))
-    >>> a = q.replyZone(textwrap.dedent(z))
+    >>> a = q.reply_zone(textwrap.dedent(z))
     >>> print(a)
     ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: ...
     ;; flags: qr aa rd ra; QUERY: 1, ANSWER: 4, AUTHORITY: 0, ADDITIONAL: 0
