@@ -1,6 +1,12 @@
-# -*- coding: utf-8 -*-
+import binascii
+import code
+from subprocess import getoutput, getstatusoutput
 
-"""
+from dnslib.digparser import DigParser
+from dnslib.dns import EDNS0, QTYPE, DNSError, DNSHeader, DNSQuestion, DNSRecord
+
+
+__doc__ = """
     DNS Client - DiG-like CLI utility.
 
     Mostly useful for testing. Can optionally compare results from two
@@ -11,30 +17,11 @@
     See --help for usage.
 """
 
-from __future__ import print_function
-
-
-try:
-    from subprocess import getoutput, getstatusoutput
-except ImportError:
-    from commands import getoutput, getstatusoutput
-
-import binascii
-import code
-import pprint
-import sys
-
-from dnslib.digparser import DigParser
-from dnslib.dns import EDNS0, QTYPE, DNSError, DNSHeader, DNSQuestion, DNSRecord
-
 
 if __name__ == "__main__":
-
     import argparse
-    import sys
-    import time
 
-    p = argparse.ArgumentParser(description="DNS Client")
+    p = argparse.ArgumentParser(description="DNS Client", usage=__doc__)
     p.add_argument(
         "--server",
         "-s",
@@ -75,7 +62,8 @@ if __name__ == "__main__":
         "--dig",
         action="store_true",
         default=False,
-        help="Compare result with DiG - if ---diff also specified use alternative nameserver for DiG request (default: false)",
+        help="Compare result with DiG - if ---diff also specified use alternative "
+        "nameserver for DiG request (default: false)",
     )
     p.add_argument(
         "--short",
@@ -132,7 +120,7 @@ if __name__ == "__main__":
 
         if q.header.id != a.header.id:
             raise DNSError(
-                "Response transaction id does not match query transaction id"
+                "Response transaction id does not match query transaction id",
             )
 
         if a.header.tc and args.noretry == False:
@@ -218,4 +206,4 @@ if __name__ == "__main__":
             code.interact(local=locals())
 
     except DNSError as e:
-        p.error(e)
+        p.error(str(e))

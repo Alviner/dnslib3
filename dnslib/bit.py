@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-
-"""
-    Some basic bit mainpulation utilities
-"""
-from __future__ import print_function
+__doc__ = """ Some basic bit manipulation utilities """
 
 
 FILTER = bytearray([(i < 32 or i > 127) and 46 or i for i in range(256)])
@@ -96,10 +91,3 @@ def binary(n, count=16, reverse=False):
     if reverse:
         bits.reverse()
     return "".join(bits)
-
-
-if __name__ == "__main__":
-    import doctest
-    import sys
-
-    sys.exit(0 if doctest.testmod().failed == 0 else 1)

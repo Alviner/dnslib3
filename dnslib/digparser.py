@@ -1,5 +1,14 @@
-# -*- coding: utf-8 -*-
-"""
+import re
+import string
+
+from dnslib.dns import (
+    CLASS, EDNS0, QR, QTYPE, RCODE, RD, RDMAP, RR, DNSError, DNSHeader,
+    DNSQuestion, DNSRecord,
+)
+from dnslib.lex import WordLexer
+
+
+__doc__ = """
 
     digparser
     ---------
@@ -11,6 +20,7 @@
     Unsupported RR types are skipped (this is different from the packet
     parser which will store and encode the RDATA as a binary blob)
 
+    >>> import os
     >>> dig = os.path.join(os.path.dirname(__file__),"doctestdata","dig","google.com-A.dig")
     >>> with open(dig) as f:
     ...     l = DigParser(f)
@@ -68,29 +78,6 @@
     <DNS RR: 'google.com.' rtype=MX rclass=IN ttl=599 rdata='30 alt2.aspmx.l.google.com.'>
 
 """
-
-from __future__ import print_function
-
-import glob
-import os.path
-import re
-import string
-
-from dnslib.dns import (
-    CLASS,
-    EDNS0,
-    QR,
-    QTYPE,
-    RCODE,
-    RD,
-    RDMAP,
-    RR,
-    DNSError,
-    DNSHeader,
-    DNSQuestion,
-    DNSRecord,
-)
-from dnslib.lex import WordLexer
 
 
 class DigParser:
@@ -151,17 +138,17 @@ class DigParser:
                                 ttl=int(ttl),
                                 rtype=getattr(QTYPE, rtype),
                                 rclass=getattr(CLASS, rclass),
-                                rdata=rd.fromZone(rdata),
+                                rdata=rd.from_zone(rdata),
                             ),
                         )
                 except DNSError as e:
                     if self.debug:
                         print("DNSError:", e, rr)
                     else:
-                        # Skip records we dont understand
+                        # Skip records we don't understand
                         pass
 
-    def parseEDNS(self, edns, dns):
+    def parse_edns(self, edns, dns):
         args = {}
         m = re.search(r"version: (\d+),", edns)
         if m:
@@ -210,7 +197,7 @@ class DigParser:
                         # Only partial support for parsing EDNS records
                         self.expect("NL")
                         val2 = self.expect("COMMENT")
-                        self.parseEDNS(val2, dns)
+                        self.parse_edns(val2, dns)
                     elif val.startswith(";") or tok[1].startswith("<<>>"):
                         pass
                     elif dns and section == q:
@@ -233,4 +220,4 @@ class DigParser:
             if dns:
                 self.parseQuestions(q, dns)
                 self.parseAnswers(a, auth, ar, dns)
-                yield (dns)
+                yield dns

@@ -37,7 +37,7 @@ class Bimap(object):
     >>> class TestError(Exception):
     ...     pass
 
-    >>> TEST = Bimap('TEST',{1:'A', 2:'B', 3:'C'},TestError)
+    >>> TEST = Bimap('TEST',{1:'A', 2:'B', 3:'C'}, TestError)
     >>> TEST[1]
     'A'
     >>> TEST.A
@@ -67,7 +67,7 @@ class Bimap(object):
     ...             except:
     ...                 pass
     ...         raise TestError("%s: Invalid reverse lookup: [%s]" % (name,key))
-    >>> TEST2 = Bimap('TEST2',{1:'A', 2:'B', 3:'C'},_error)
+    >>> TEST2 = Bimap('TEST2',{1:'A', 2:'B', 3:'C'}, _error)
     >>> TEST2[1]
     'A'
     >>> TEST2[9999]

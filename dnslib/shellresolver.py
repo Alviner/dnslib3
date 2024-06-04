@@ -1,12 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
-
-try:
-    from subprocess import getoutput
-except ImportError:
-    from commands import getoutput
+from subprocess import getoutput
 
 from dnslib import QTYPE, RCODE, RR, TXT, parse_time
 from dnslib.label import DNSLabel
@@ -64,7 +56,6 @@ class ShellResolver(BaseResolver):
 if __name__ == "__main__":
 
     import argparse
-    import sys
     import time
 
     p = argparse.ArgumentParser(description="Shell DNS Resolver")

@@ -1,15 +1,8 @@
-# -*- coding: utf-8 -*-
-
-"""
-    Buffer - simple data buffer
-"""
-
 import binascii
 import struct
 
 
-class BufferError(Exception):
-    pass
+__doc__ = """ Buffer - simple data buffer """
 
 
 class Buffer(object):
@@ -103,8 +96,9 @@ class Buffer(object):
         """
         Unpack data at current offset according to fmt (from struct)
         """
+        data = self.get(struct.calcsize(fmt))
+
         try:
-            data = self.get(struct.calcsize(fmt))
             return struct.unpack(fmt, data)
         except struct.error as e:
             raise BufferError(
@@ -114,10 +108,3 @@ class Buffer(object):
 
     def __len__(self):
         return len(self.data)
-
-
-if __name__ == "__main__":
-    import doctest
-    import sys
-
-    sys.exit(0 if doctest.testmod().failed == 0 else 1)
