@@ -17,7 +17,7 @@ from __future__ import print_function
 try:
     from subprocess import getoutput, getstatusoutput
 except ImportError:
-    from commands import getoutput,getstatusoutput
+    from commands import getoutput, getstatusoutput
 
 import binascii
 import code
@@ -36,88 +36,113 @@ if __name__ == "__main__":
 
     p = argparse.ArgumentParser(description="DNS Client")
     p.add_argument(
-        "--server","-s",default="8.8.8.8",
+        "--server",
+        "-s",
+        default="8.8.8.8",
         metavar="<address:port>",
         help="Server address:port (default:8.8.8.8:53) (port is optional)",
     )
     p.add_argument(
-        "--query",action="store_true",default=False,
+        "--query",
+        action="store_true",
+        default=False,
         help="Show query (default: False)",
     )
     p.add_argument(
-        "--hex",action="store_true",default=False,
+        "--hex",
+        action="store_true",
+        default=False,
         help="Dump packet in hex (default: False)",
     )
     p.add_argument(
-        "--tcp",action="store_true",default=False,
+        "--tcp",
+        action="store_true",
+        default=False,
         help="Use TCP (default: UDP)",
     )
     p.add_argument(
-        "--noretry",action="store_true",default=False,
+        "--noretry",
+        action="store_true",
+        default=False,
         help="Don't retry query using TCP if truncated (default: false)",
     )
     p.add_argument(
-        "--diff",default="",
+        "--diff",
+        default="",
         help="Compare response from alternate nameserver (format: address:port / default: false)",
     )
     p.add_argument(
-        "--dig",action="store_true",default=False,
+        "--dig",
+        action="store_true",
+        default=False,
         help="Compare result with DiG - if ---diff also specified use alternative nameserver for DiG request (default: false)",
     )
     p.add_argument(
-        "--short",action="store_true",default=False,
+        "--short",
+        action="store_true",
+        default=False,
         help="Short output - rdata only (default: false)",
     )
     p.add_argument(
-        "--dnssec",action="store_true",default=False,
+        "--dnssec",
+        action="store_true",
+        default=False,
         help="Set DNSSEC (DO/AD) flags in query (default: false)",
     )
     p.add_argument(
-        "--debug",action="store_true",default=False,
+        "--debug",
+        action="store_true",
+        default=False,
         help="Drop into CLI after request (default: false)",
     )
     p.add_argument(
-        "domain",metavar="<domain>",
+        "domain",
+        metavar="<domain>",
         help="Query domain",
     )
     p.add_argument(
-        "qtype",metavar="<type>",default="A",nargs="?",
+        "qtype",
+        metavar="<type>",
+        default="A",
+        nargs="?",
         help="Query type (default: A)",
     )
     args = p.parse_args()
 
     # Construct request
     try:
-        q = DNSRecord(q=DNSQuestion(args.domain,getattr(QTYPE,args.qtype)))
+        q = DNSRecord(q=DNSQuestion(args.domain, getattr(QTYPE, args.qtype)))
 
         if args.dnssec:
-            q.add_ar(EDNS0(flags="do",udp_len=4096))
+            q.add_ar(EDNS0(flags="do", udp_len=4096))
             q.header.ad = 1
 
-        address,_,port = args.server.partition(":")
+        address, _, port = args.server.partition(":")
         port = int(port or 53)
 
         if args.query:
             print(";; Sending%s:" % (" (TCP)" if args.tcp else ""))
             if args.hex:
-                print(";; QUERY:",binascii.hexlify(q.pack()).decode())
+                print(";; QUERY:", binascii.hexlify(q.pack()).decode())
             print(q)
             print()
 
-        a_pkt = q.send(address,port,tcp=args.tcp)
+        a_pkt = q.send(address, port, tcp=args.tcp)
         a = DNSRecord.parse(a_pkt)
 
         if q.header.id != a.header.id:
-            raise DNSError("Response transaction id does not match query transaction id")
+            raise DNSError(
+                "Response transaction id does not match query transaction id"
+            )
 
         if a.header.tc and args.noretry == False:
             # Truncated - retry in TCP mode
-            a_pkt = q.send(address,port,tcp=True)
+            a_pkt = q.send(address, port, tcp=True)
             a = DNSRecord.parse(a_pkt)
 
         if args.dig or args.diff:
             if args.diff:
-                address,_,port = args.diff.partition(":")
+                address, _, port = args.diff.partition(":")
                 port = int(port or 53)
 
             if args.dig:
@@ -125,14 +150,22 @@ if __name__ == "__main__":
                     p.error("DiG not found")
                 if args.dnssec:
                     dig = getoutput(
-                        "dig +qr +dnssec -p %d %s %s @%s" % (
-                        port, args.domain, args.qtype, address,
+                        "dig +qr +dnssec -p %d %s %s @%s"
+                        % (
+                            port,
+                            args.domain,
+                            args.qtype,
+                            address,
                         ),
                     )
                 else:
                     dig = getoutput(
-                        "dig +qr +noedns +noadflag -p %d %s %s @%s" % (
-                        port, args.domain, args.qtype, address,
+                        "dig +qr +noedns +noadflag -p %d %s %s @%s"
+                        % (
+                            port,
+                            args.domain,
+                            args.qtype,
+                            address,
                         ),
                     )
                 dig_reply = list(iter(DigParser(dig)))
@@ -144,14 +177,14 @@ if __name__ == "__main__":
                     header=DNSHeader(id=q.header.id),
                     q=DNSQuestion(
                         args.domain,
-                        getattr(QTYPE,args.qtype),
+                        getattr(QTYPE, args.qtype),
                     ),
                 )
                 q_diff = q
-                diff = q_diff.send(address,port,tcp=args.tcp)
+                diff = q_diff.send(address, port, tcp=args.tcp)
                 a_diff = DNSRecord.parse(diff)
                 if a_diff.header.tc and args.noretry == False:
-                    diff = q_diff.send(address,port,tcp=True)
+                    diff = q_diff.send(address, port, tcp=True)
                     a_diff = DNSRecord.parse(diff)
 
         if args.short:
@@ -159,23 +192,23 @@ if __name__ == "__main__":
         else:
             print(";; Got answer:")
             if args.hex:
-                print(";; RESPONSE:",binascii.hexlify(a_pkt).decode())
+                print(";; RESPONSE:", binascii.hexlify(a_pkt).decode())
                 if args.diff and not args.dig:
-                    print(";; DIFF    :",binascii.hexlify(diff).decode())
+                    print(";; DIFF    :", binascii.hexlify(diff).decode())
             print(a)
             print()
 
             if args.dig or args.diff:
                 if q != q_diff:
                     print(";;; ERROR: Diff Question differs")
-                    for (d1,d2) in q.diff(q_diff):
+                    for d1, d2 in q.diff(q_diff):
                         if d1:
                             print(";; - %s" % d1)
                         if d2:
                             print(";; + %s" % d2)
                 if a != a_diff:
                     print(";;; ERROR: Diff Response differs")
-                    for (d1,d2) in a.diff(a_diff):
+                    for d1, d2 in a.diff(a_diff):
                         if d1:
                             print(";; - %s" % d1)
                         if d2:

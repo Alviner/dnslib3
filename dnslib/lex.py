@@ -11,47 +11,47 @@ try:
 except ImportError:
     from io import StringIO
 
+
 class Lexer(object):
-
     """
-        Simple Lexer base class. Provides basic lexer framework and
-        helper functionality (read/peek/pushback etc)
+    Simple Lexer base class. Provides basic lexer framework and
+    helper functionality (read/peek/pushback etc)
 
-        Each state is implemented using a method (lexXXXX) which should
-        match a single token and return a (token,lexYYYY) tuple, with lexYYYY
-        representing the next state. If token is None this is not emitted
-        and if lexYYYY is None or the lexer reaches the end of the
-        input stream the lexer exits.
+    Each state is implemented using a method (lexXXXX) which should
+    match a single token and return a (token,lexYYYY) tuple, with lexYYYY
+    representing the next state. If token is None this is not emitted
+    and if lexYYYY is None or the lexer reaches the end of the
+    input stream the lexer exits.
 
-        The 'parse' method returns a generator that will return tokens
-        (the class also acts as an iterator)
+    The 'parse' method returns a generator that will return tokens
+    (the class also acts as an iterator)
 
-        The default start state is 'lexStart'
+    The default start state is 'lexStart'
 
-        Input can either be a string/bytes or file object.
+    Input can either be a string/bytes or file object.
 
-        The approach is based loosely on Rob Pike's Go lexer presentation
-        (using generators rather than channels).
+    The approach is based loosely on Rob Pike's Go lexer presentation
+    (using generators rather than channels).
 
-        >>> p = Lexer("a bcd efgh")
-        >>> p.read()
-        'a'
-        >>> p.read()
-        ' '
-        >>> p.peek(3)
-        'bcd'
-        >>> p.read(5)
-        'bcd e'
-        >>> p.pushback('e')
-        >>> p.read(4)
-        'efgh'
+    >>> p = Lexer("a bcd efgh")
+    >>> p.read()
+    'a'
+    >>> p.read()
+    ' '
+    >>> p.peek(3)
+    'bcd'
+    >>> p.read(5)
+    'bcd e'
+    >>> p.pushback('e')
+    >>> p.read(4)
+    'efgh'
     """
 
     escape_chars = "\\"
-    escape = {"n":"\n","t":"\t","r":"\r"}
+    escape = {"n": "\n", "t": "\t", "r": "\r"}
 
-    def __init__(self,f,debug=False):
-        if hasattr(f,"read"):
+    def __init__(self, f, debug=False):
+        if hasattr(f, "read"):
             self.f = f
         elif type(f) == str:
             self.f = StringIO(f)
@@ -70,8 +70,8 @@ class Lexer(object):
 
     def next_token(self):
         if self.debug:
-            print("STATE",self.state)
-        (tok,self.state) = self.state()
+            print("STATE", self.state)
+        (tok, self.state) = self.state()
         return tok
 
     def parse(self):
@@ -80,7 +80,7 @@ class Lexer(object):
             if tok:
                 yield tok
 
-    def read(self,n=1):
+    def read(self, n=1):
         s = ""
         while self.q and n > 0:
             s += self.q.popleft()
@@ -92,7 +92,7 @@ class Lexer(object):
             print("Read: >%s<" % repr(s))
         return s
 
-    def peek(self,n=1):
+    def peek(self, n=1):
         s = ""
         i = 0
         while len(self.q) > i and n > 0:
@@ -107,7 +107,7 @@ class Lexer(object):
             print("Peek : >%s<" % repr(s + r))
         return s + r
 
-    def pushback(self,s):
+    def pushback(self, s):
         p = collections.deque(s)
         p.extend(self.q)
         self.q = p
@@ -121,46 +121,46 @@ class Lexer(object):
                 n = self.read(3)
                 if self.debug:
                     print("Escape: >%s<" % n)
-                return chr(int(n,8))
+                return chr(int(n, 8))
             elif n[0] in "x":
                 x = self.read(3)
                 if self.debug:
                     print("Escape: >%s<" % x)
-                return chr(int(x[1:],16))
+                return chr(int(x[1:], 16))
             else:
                 c = self.read(1)
                 if self.debug:
                     print("Escape: >%s<" % c)
-                return self.escape.get(c,c)
+                return self.escape.get(c, c)
         else:
             self.escaped = False
             return c
 
     def lexStart(self):
-        return (None,None)
+        return (None, None)
+
 
 class WordLexer(Lexer):
     """
-        Example lexer which will split input stream into words (respecting
-        quotes)
+    Example lexer which will split input stream into words (respecting
+    quotes)
 
-        To emit SPACE tokens: self.spacetok = ('SPACE',None)
-        To emit NL tokens: self.nltok = ('NL',None)
+    To emit SPACE tokens: self.spacetok = ('SPACE',None)
+    To emit NL tokens: self.nltok = ('NL',None)
 
-        >>> l = WordLexer(r'abc "def\100\x3d\\. ghi" jkl')
-        >>> list(l)
-        [('ATOM', 'abc'), ('ATOM', 'def@=. ghi'), ('ATOM', 'jkl')]
-        >>> l = WordLexer(r"1 '2 3 4' 5")
-        >>> list(l)
-        [('ATOM', '1'), ('ATOM', '2 3 4'), ('ATOM', '5')]
-        >>> l = WordLexer("abc# a comment")
-        >>> list(l)
-        [('ATOM', 'abc'), ('COMMENT', 'a comment')]
+    >>> l = WordLexer(r'abc "def\100\x3d\\. ghi" jkl')
+    >>> list(l)
+    [('ATOM', 'abc'), ('ATOM', 'def@=. ghi'), ('ATOM', 'jkl')]
+    >>> l = WordLexer(r"1 '2 3 4' 5")
+    >>> list(l)
+    [('ATOM', '1'), ('ATOM', '2 3 4'), ('ATOM', '5')]
+    >>> l = WordLexer("abc# a comment")
+    >>> list(l)
+    [('ATOM', 'abc'), ('COMMENT', 'a comment')]
     """
 
-    wordchars = set(string.ascii_letters) | set(string.digits) | \
-                set(string.punctuation)
-    quotechars = set('"\'')
+    wordchars = set(string.ascii_letters) | set(string.digits) | set(string.punctuation)
+    quotechars = set("\"'")
     commentchars = set("#")
     spacechars = set(" \t\x0b\x0c")
     nlchars = set("\r\n")
@@ -168,14 +168,14 @@ class WordLexer(Lexer):
     nltok = None
 
     def lexStart(self):
-        return (None,self.lexSpace)
+        return (None, self.lexSpace)
 
     def lexSpace(self):
         s = []
         if self.spacetok:
-            tok = lambda n : (self.spacetok,n) if s else (None,n)
+            tok = lambda n: (self.spacetok, n) if s else (None, n)
         else:
-            tok = lambda n : (None,n)
+            tok = lambda n: (None, n)
         while not self.eof:
             c = self.peek()
             if c in self.spacechars:
@@ -190,22 +190,24 @@ class WordLexer(Lexer):
                 return tok(self.lexWord)
             elif c:
                 raise ValueError(
-                    "Invalid input [%d]: %s" % (
-                    self.f.tell(),c,
+                    "Invalid input [%d]: %s"
+                    % (
+                        self.f.tell(),
+                        c,
                     ),
                 )
-        return (None,None)
+        return (None, None)
 
     def lexNL(self):
         while True:
             c = self.read()
             if c not in self.nlchars:
                 self.pushback(c)
-                return (self.nltok,self.lexSpace)
+                return (self.nltok, self.lexSpace)
 
     def lexComment(self):
         s = []
-        tok = lambda n : (("COMMENT","".join(s)),n) if s else (None,n)
+        tok = lambda n: (("COMMENT", "".join(s)), n) if s else (None, n)
         start = False
         _ = self.read()
         while not self.eof:
@@ -220,7 +222,7 @@ class WordLexer(Lexer):
 
     def lexWord(self):
         s = []
-        tok = lambda n : (("ATOM","".join(s)),n) if s else (None,n)
+        tok = lambda n: (("ATOM", "".join(s)), n) if s else (None, n)
         while not self.eof:
             c = self.peek()
             if c == '"':
@@ -233,15 +235,17 @@ class WordLexer(Lexer):
                 s.append(self.read())
             elif c:
                 raise ValueError(
-                    "Invalid input [%d]: %s" % (
-                    self.f.tell(),c,
+                    "Invalid input [%d]: %s"
+                    % (
+                        self.f.tell(),
+                        c,
                     ),
                 )
         return tok(None)
 
     def lexQuote(self):
         s = []
-        tok = lambda n : (("ATOM","".join(s)),n)
+        tok = lambda n: (("ATOM", "".join(s)), n)
         q = self.read(1)
         while not self.eof:
             c = self.readescaped()
@@ -251,43 +255,43 @@ class WordLexer(Lexer):
                 s.append(c)
         return tok(self.lexSpace)
 
+
 class RandomLexer(Lexer):
-
     """
-        Test lexing from infinite stream.
+    Test lexing from infinite stream.
 
-        Extract strings of letters/numbers from /dev/urandom
+    Extract strings of letters/numbers from /dev/urandom
 
-        >>> import itertools,sys
-        >>> if sys.version[0] == '2':
-        ...     f = open("/dev/urandom")
-        ... else:
-        ...     f = open("/dev/urandom",encoding="ascii",errors="replace")
-        >>> r = RandomLexer(f)
-        >>> i = iter(r)
-        >>> len(list(itertools.islice(i,10)))
-        10
+    >>> import itertools,sys
+    >>> if sys.version[0] == '2':
+    ...     f = open("/dev/urandom")
+    ... else:
+    ...     f = open("/dev/urandom",encoding="ascii",errors="replace")
+    >>> r = RandomLexer(f)
+    >>> i = iter(r)
+    >>> len(list(itertools.islice(i,10)))
+    10
     """
 
     minalpha = 4
     mindigits = 3
 
     def lexStart(self):
-        return (None,self.lexRandom)
+        return (None, self.lexRandom)
 
     def lexRandom(self):
         n = 0
         c = self.peek(1)
         while not self.eof:
             if c.isalpha():
-                return (None,self.lexAlpha)
+                return (None, self.lexAlpha)
             elif c.isdigit():
-                return (None,self.lexDigits)
+                return (None, self.lexDigits)
             else:
                 n += 1
                 _ = self.read(1)
                 c = self.peek(1)
-        return (None,None)
+        return (None, None)
 
     def lexDigits(self):
         s = []
@@ -297,9 +301,9 @@ class RandomLexer(Lexer):
             c = self.read(1)
         self.pushback(c)
         if len(s) >= self.mindigits:
-            return (("NUMBER","".join(s)),self.lexRandom)
+            return (("NUMBER", "".join(s)), self.lexRandom)
         else:
-            return (None,self.lexRandom)
+            return (None, self.lexRandom)
 
     def lexAlpha(self):
         s = []
@@ -309,9 +313,10 @@ class RandomLexer(Lexer):
             c = self.read(1)
         self.pushback(c)
         if len(s) >= self.minalpha:
-            return (("STRING","".join(s)),self.lexRandom)
+            return (("STRING", "".join(s)), self.lexRandom)
         else:
-            return (None,self.lexRandom)
+            return (None, self.lexRandom)
+
 
 if __name__ == "__main__":
 
@@ -321,22 +326,29 @@ if __name__ == "__main__":
 
     p = argparse.ArgumentParser(description="Lex Tester")
     p.add_argument(
-        "--lex","-l",action="store_true",default=False,
+        "--lex",
+        "-l",
+        action="store_true",
+        default=False,
         help="Lex input (stdin)",
     )
     p.add_argument(
-        "--nl",action="store_true",default=False,
+        "--nl",
+        action="store_true",
+        default=False,
         help="Output NL tokens",
     )
     p.add_argument(
-        "--space",action="store_true",default=False,
+        "--space",
+        action="store_true",
+        default=False,
         help="Output Whitespace tokens",
     )
-    p.add_argument("--wordchars",help="Wordchars")
-    p.add_argument("--quotechars",help="Quotechars")
-    p.add_argument("--commentchars",help="Commentchars")
-    p.add_argument("--spacechars",help="Spacechars")
-    p.add_argument("--nlchars",help="NLchars")
+    p.add_argument("--wordchars", help="Wordchars")
+    p.add_argument("--quotechars", help="Quotechars")
+    p.add_argument("--commentchars", help="Commentchars")
+    p.add_argument("--spacechars", help="Spacechars")
+    p.add_argument("--nlchars", help="NLchars")
 
     args = p.parse_args()
 
@@ -368,4 +380,3 @@ if __name__ == "__main__":
             # Don't run stream test
             doctest.run_docstring_examples(Lexer, globals())
             doctest.run_docstring_examples(WordLexer, globals())
-
