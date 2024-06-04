@@ -4,7 +4,9 @@
     Bimap - bidirectional mapping between code/value
 """
 
-import sys,types
+import sys
+import types
+
 
 class BimapError(Exception):
     pass
@@ -43,11 +45,11 @@ class Bimap(object):
         >>> TEST.X
         Traceback (most recent call last):
         ...
-        TestError: TEST: Invalid reverse lookup: [X]
+        dnslib.bimap.TestError: TEST: Invalid reverse lookup: [X]
         >>> TEST[99]
         Traceback (most recent call last):
         ...
-        TestError: TEST: Invalid forward lookup: [99]
+        dnslib.bimap.TestError: TEST: Invalid forward lookup: [99]
         >>> TEST.get(99)
         '99'
 
@@ -73,7 +75,7 @@ class Bimap(object):
         >>> TEST2['abcd']
         Traceback (most recent call last):
         ...
-        TestError: TEST2: Invalid forward lookup: [abcd]
+        dnslib.bimap.TestError: TEST2: Invalid forward lookup: [abcd]
         >>> TEST2.A
         1
         >>> TEST2.TEST9999
@@ -81,7 +83,7 @@ class Bimap(object):
         >>> TEST2.X
         Traceback (most recent call last):
         ...
-        TestError: TEST2: Invalid reverse lookup: [X]
+        dnslib.bimap.TestError: TEST2: Invalid reverse lookup: [X]
 
     """
 
@@ -94,13 +96,13 @@ class Bimap(object):
     def get(self,k,default=None):
         try:
             return self.forward[k]
-        except KeyError as e:
+        except KeyError:
             return default or str(k)
 
     def __getitem__(self,k):
         try:
             return self.forward[k]
-        except KeyError as e:
+        except KeyError:
             if isinstance(self.error,types.FunctionType):
                 return self.error(self.name,k,True)
             else:
@@ -112,12 +114,8 @@ class Bimap(object):
             if k == "__wrapped__":
                 raise AttributeError()
             return self.reverse[k]
-        except KeyError as e:
+        except KeyError:
             if isinstance(self.error,types.FunctionType):
                 return self.error(self.name,k,False)
             else:
                 raise self.error("%s: Invalid reverse lookup: [%s]" % (self.name,k))
-
-if __name__ == '__main__':
-    import doctest,sys
-    sys.exit(0 if doctest.testmod().failed == 0 else 1)
