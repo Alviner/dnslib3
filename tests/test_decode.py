@@ -12,6 +12,7 @@ import pytest
 from dnslib.digparser import DigParser
 from dnslib.dns import EDNS0, DNSRecord
 
+
 TESTS_ROOT = pathlib.Path(__file__).parent
 TEST_DATA = TESTS_ROOT / "testdata"
 TEST_FILES = (file for file in TEST_DATA.glob("*") if file.is_file())
@@ -34,11 +35,11 @@ def check_decode(f):
         q,r = DigParser(x)
 
     # Grab the hex data
-    with open(f,'rb') as x:
+    with open(f,"rb") as x:
         for l in x.readlines():
-            if l.startswith(b';; QUERY:'):
+            if l.startswith(b";; QUERY:"):
                 qdata = binascii.unhexlify(l.split()[-1])
-            elif l.startswith(b';; RESPONSE:'):
+            elif l.startswith(b";; RESPONSE:"):
                 rdata = binascii.unhexlify(l.split()[-1])
 
     # Parse the hex data
@@ -48,9 +49,9 @@ def check_decode(f):
     # Check records generated from DiG input matches
     # records parsed from packet data
     if q != qparse:
-        errors.append(('Question',q.diff(qparse)))
+        errors.append(("Question",q.diff(qparse)))
     if r != rparse:
-        errors.append(('Reply',r.diff(rparse)))
+        errors.append(("Reply",r.diff(rparse)))
 
     # Repack the data
     qpack = qparse.pack()
@@ -64,41 +65,41 @@ def check_decode(f):
         if len(qpack) < len(qdata):
             # Shorter - possibly compression difference
             if DNSRecord.parse(qpack).pack() != qpack:
-                errors.append(('Question Pack',(qdata,qpack)))
+                errors.append(("Question Pack",(qdata,qpack)))
         else:
-            errors.append(('Question Pack',(qdata,qpack)))
+            errors.append(("Question Pack",(qdata,qpack)))
     if rpack != rdata:
         if len(rpack) < len(rdata):
             if DNSRecord.parse(rpack).pack() != rpack:
-                errors.append(('Reply Pack',(rdata,rpack)))
+                errors.append(("Reply Pack",(rdata,rpack)))
         else:
-            errors.append(('Reply Pack',(rdata,rpack)))
+            errors.append(("Reply Pack",(rdata,rpack)))
 
     return errors
 
 def print_errors(errors):
     for err,err_data in errors:
-        if err == 'Question':
+        if err == "Question":
             print("Question error:")
             for (d1,d2) in err_data:
                 if d1:
                     print(";; - %s" % d1)
                 if d2:
                     print(";; + %s" % d2)
-        elif err == 'Reply':
+        elif err == "Reply":
             print("Reply error:")
             for (d1,d2) in err_data:
                 if d1:
                     print(";; - %s" % d1)
                 if d2:
                     print(";; + %s" % d2)
-        elif err == 'Question Pack':
+        elif err == "Question Pack":
             print("Question pack error")
             print("QDATA:",binascii.hexlify(err_data[0]))
             print(DNSRecord.parse(err_data[0]))
             print("QPACK:",binascii.hexlify(err_data[1]))
             print(DNSRecord.parse(err_data[1]))
-        elif err == 'Reply Pack':
+        elif err == "Reply Pack":
             print("Response pack error")
             print("RDATA:",binascii.hexlify(err_data[0]))
             print(DNSRecord.parse(err_data[0]))

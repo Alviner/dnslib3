@@ -51,8 +51,10 @@
 """
 
 import sys
-if sys.version < '3':
-    int_types = (int, long,)
+
+
+if sys.version < "3":
+    int_types = (int, long)
     byte_types = (str,bytearray)
 else:
     int_types = (int,)
@@ -60,8 +62,10 @@ else:
 
 def check_instance(name,val,types):
     if not isinstance(val,types):
-        raise ValueError("Attribute '%s' must be instance of %s [%s]" %
-                                        (name,types,type(val)))
+        raise ValueError(
+            "Attribute '%s' must be instance of %s [%s]" %
+            (name,types,type(val)),
+        )
 
 def check_bytes(name,val):
     return check_instance(name,val,byte_types)
@@ -73,8 +77,10 @@ def instance_property(attr,types):
         if isinstance(val,types):
             setattr(obj,"_%s" % attr,val)
         else:
-            raise ValueError("Attribute '%s' must be instance of %s [%s]" %
-                                        (attr,types,type(val)))
+            raise ValueError(
+                "Attribute '%s' must be instance of %s [%s]" %
+                (attr,types,type(val)),
+            )
     return property(getter,setter)
 
 def BYTES(attr):
@@ -82,8 +88,10 @@ def BYTES(attr):
 
 def check_range(name,val,min,max):
     if not (isinstance(val,int_types) and min <= val <= max):
-        raise ValueError("Attribute '%s' must be between %d-%d [%s]" %
-                                        (name,min,max,val))
+        raise ValueError(
+            "Attribute '%s' must be between %d-%d [%s]" %
+            (name,min,max,val),
+        )
 
 def range_property(attr,min,max):
     def getter(obj):
@@ -92,8 +100,10 @@ def range_property(attr,min,max):
         if isinstance(val,int_types) and min <= val <= max:
             setattr(obj,"_%s" % attr,val)
         else:
-            raise ValueError("Attribute '%s' must be between %d-%d [%s]" %
-                                        (attr,min,max,val))
+            raise ValueError(
+                "Attribute '%s' must be between %d-%d [%s]" %
+                (attr,min,max,val),
+            )
     return property(getter,setter)
 
 def B(attr):
@@ -120,13 +130,17 @@ def ntuple_range(attr,n,min,max):
         return getattr(obj,"_%s" % attr)
     def setter(obj,val):
         if len(val) != n:
-            raise ValueError("Attribute '%s' must be tuple with %d elements [%s]" %
-                                        (attr,n,val))
+            raise ValueError(
+                "Attribute '%s' must be tuple with %d elements [%s]" %
+                (attr,n,val),
+            )
         if all(map(f,val)):
             setattr(obj,"_%s" % attr,val)
         else:
-            raise ValueError("Attribute '%s' elements must be between %d-%d [%s]" %
-                                        (attr,min,max,val))
+            raise ValueError(
+                "Attribute '%s' elements must be between %d-%d [%s]" %
+                (attr,min,max,val),
+            )
     return property(getter,setter)
 
 def IP4(attr):
@@ -135,6 +149,7 @@ def IP4(attr):
 def IP6(attr):
     return ntuple_range(attr,16,0,255)
 
-if __name__ == '__main__':
-    import doctest,sys
+if __name__ == "__main__":
+    import doctest
+    import sys
     sys.exit(0 if doctest.testmod(optionflags=doctest.ELLIPSIS).failed == 0 else 1)

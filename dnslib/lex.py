@@ -2,7 +2,9 @@
 
 from __future__ import print_function
 
-import collections,string
+import collections
+import string
+
 
 try:
     from StringIO import StringIO
@@ -45,11 +47,11 @@ class Lexer(object):
         'efgh'
     """
 
-    escape_chars = '\\'
-    escape = {'n':'\n','t':'\t','r':'\r'}
+    escape_chars = "\\"
+    escape = {"n":"\n","t":"\t","r":"\r"}
 
     def __init__(self,f,debug=False):
-        if hasattr(f,'read'):
+        if hasattr(f,"read"):
             self.f = f
         elif type(f) == str:
             self.f = StringIO(f)
@@ -84,7 +86,7 @@ class Lexer(object):
             s += self.q.popleft()
             n -= 1
         s += self.f.read(n)
-        if s == '':
+        if s == "":
             self.eof = True
         if self.debug:
             print("Read: >%s<" % repr(s))
@@ -98,7 +100,7 @@ class Lexer(object):
             i += 1
             n -= 1
         r = self.f.read(n)
-        if n > 0 and r == '':
+        if n > 0 and r == "":
             self.eof = True
         self.q.extend(r)
         if self.debug:
@@ -120,7 +122,7 @@ class Lexer(object):
                 if self.debug:
                     print("Escape: >%s<" % n)
                 return chr(int(n,8))
-            elif n[0] in 'x':
+            elif n[0] in "x":
                 x = self.read(3)
                 if self.debug:
                     print("Escape: >%s<" % x)
@@ -159,9 +161,9 @@ class WordLexer(Lexer):
     wordchars = set(string.ascii_letters) | set(string.digits) | \
                 set(string.punctuation)
     quotechars = set('"\'')
-    commentchars = set('#')
-    spacechars = set(' \t\x0b\x0c')
-    nlchars = set('\r\n')
+    commentchars = set("#")
+    spacechars = set(" \t\x0b\x0c")
+    nlchars = set("\r\n")
     spacetok = None
     nltok = None
 
@@ -187,8 +189,11 @@ class WordLexer(Lexer):
             elif c in self.wordchars:
                 return tok(self.lexWord)
             elif c:
-                raise ValueError("Invalid input [%d]: %s" % (
-                                        self.f.tell(),c))
+                raise ValueError(
+                    "Invalid input [%d]: %s" % (
+                    self.f.tell(),c,
+                    ),
+                )
         return (None,None)
 
     def lexNL(self):
@@ -200,12 +205,12 @@ class WordLexer(Lexer):
 
     def lexComment(self):
         s = []
-        tok = lambda n : (('COMMENT',''.join(s)),n) if s else (None,n)
+        tok = lambda n : (("COMMENT","".join(s)),n) if s else (None,n)
         start = False
         _ = self.read()
         while not self.eof:
             c = self.read()
-            if c == '\n':
+            if c == "\n":
                 self.pushback(c)
                 return tok(self.lexNL)
             elif start or c not in string.whitespace:
@@ -215,7 +220,7 @@ class WordLexer(Lexer):
 
     def lexWord(self):
         s = []
-        tok = lambda n : (('ATOM',''.join(s)),n) if s else (None,n)
+        tok = lambda n : (("ATOM","".join(s)),n) if s else (None,n)
         while not self.eof:
             c = self.peek()
             if c == '"':
@@ -227,13 +232,16 @@ class WordLexer(Lexer):
             elif c in self.wordchars:
                 s.append(self.read())
             elif c:
-                raise ValueError('Invalid input [%d]: %s' % (
-                                    self.f.tell(),c))
+                raise ValueError(
+                    "Invalid input [%d]: %s" % (
+                    self.f.tell(),c,
+                    ),
+                )
         return tok(None)
 
     def lexQuote(self):
         s = []
-        tok = lambda n : (('ATOM',''.join(s)),n)
+        tok = lambda n : (("ATOM","".join(s)),n)
         q = self.read(1)
         while not self.eof:
             c = self.readescaped()
@@ -289,7 +297,7 @@ class RandomLexer(Lexer):
             c = self.read(1)
         self.pushback(c)
         if len(s) >= self.mindigits:
-            return (('NUMBER',"".join(s)),self.lexRandom)
+            return (("NUMBER","".join(s)),self.lexRandom)
         else:
             return (None,self.lexRandom)
 
@@ -301,21 +309,29 @@ class RandomLexer(Lexer):
             c = self.read(1)
         self.pushback(c)
         if len(s) >= self.minalpha:
-            return (('STRING',"".join(s)),self.lexRandom)
+            return (("STRING","".join(s)),self.lexRandom)
         else:
             return (None,self.lexRandom)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    import argparse,doctest,sys
+    import argparse
+    import doctest
+    import sys
 
     p = argparse.ArgumentParser(description="Lex Tester")
-    p.add_argument("--lex","-l",action='store_true',default=False,
-                    help="Lex input (stdin)")
-    p.add_argument("--nl",action='store_true',default=False,
-                    help="Output NL tokens")
-    p.add_argument("--space",action='store_true',default=False,
-                    help="Output Whitespace tokens")
+    p.add_argument(
+        "--lex","-l",action="store_true",default=False,
+        help="Lex input (stdin)",
+    )
+    p.add_argument(
+        "--nl",action="store_true",default=False,
+        help="Output NL tokens",
+    )
+    p.add_argument(
+        "--space",action="store_true",default=False,
+        help="Output Whitespace tokens",
+    )
     p.add_argument("--wordchars",help="Wordchars")
     p.add_argument("--quotechars",help="Quotechars")
     p.add_argument("--commentchars",help="Commentchars")
@@ -337,9 +353,9 @@ if __name__ == '__main__':
         if args.nlchars:
             l.nlchars = set(args.nlchars)
         if args.space:
-            l.spacetok = ('SPACE',)
+            l.spacetok = ("SPACE",)
         if args.nl:
-            l.nltok = ('NL',)
+            l.nltok = ("NL",)
 
         for tok in l:
             print(tok)

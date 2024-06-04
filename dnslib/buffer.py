@@ -4,7 +4,9 @@
     Buffer - simple data buffer
 """
 
-import binascii,struct
+import binascii
+import struct
+
 
 class BufferError(Exception):
     pass
@@ -42,7 +44,7 @@ class Buffer(object):
     bytearray(b'xx234')
     """
 
-    def __init__(self,data=b''):
+    def __init__(self,data=b""):
         """
             Initialise Buffer from data
         """
@@ -60,8 +62,10 @@ class Buffer(object):
             Gen len bytes at current offset (& increment offset)
         """
         if length > self.remaining():
-            raise BufferError("Not enough bytes [offset=%d,remaining=%d,requested=%d]" %
-                    (self.offset,self.remaining(),length))
+            raise BufferError(
+                "Not enough bytes [offset=%d,remaining=%d,requested=%d]" %
+                (self.offset,self.remaining(),length),
+            )
         start = self.offset
         end = self.offset + length
         self.offset += length
@@ -103,12 +107,15 @@ class Buffer(object):
             data = self.get(struct.calcsize(fmt))
             return struct.unpack(fmt,data)
         except struct.error as e:
-            raise BufferError("Error unpacking struct '%s' <%s>" %
-                    (fmt,binascii.hexlify(data).decode()))
+            raise BufferError(
+                "Error unpacking struct '%s' <%s>" %
+                (fmt,binascii.hexlify(data).decode()),
+            )
 
     def __len__(self):
         return len(self.data)
 
-if __name__ == '__main__':
-    import doctest,sys
+if __name__ == "__main__":
+    import doctest
+    import sys
     sys.exit(0 if doctest.testmod().failed == 0 else 1)

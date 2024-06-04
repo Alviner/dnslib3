@@ -5,9 +5,10 @@
 """
 from __future__ import print_function
 
-FILTER = bytearray([ (i < 32 or i > 127) and 46 or i for i in range(256) ])
 
-def hexdump(src, length=16, prefix=''):
+FILTER = bytearray([ (i < 32 or i > 127) and 46 or i for i in range(256)])
+
+def hexdump(src, length=16, prefix=""):
     """
     Print hexdump of string
 
@@ -28,12 +29,16 @@ def hexdump(src, length=16, prefix=''):
     while src:
         s,src = src[:length],src[length:]
         l,r = s[:left],s[left:]
-        hexa = "%-*s" % (left*3,' '.join(["%02x"%x for x in l]))
-        hexb = "%-*s" % (right*3,' '.join(["%02x"%x for x in r]))
+        hexa = "%-*s" % (left*3," ".join(["%02x"%x for x in l]))
+        hexb = "%-*s" % (right*3," ".join(["%02x"%x for x in r]))
         lf = l.translate(FILTER)
         rf = r.translate(FILTER)
-        result.append("%s%04x  %s %s %s %s" % (prefix, n, hexa, hexb,
-                                               lf.decode(), rf.decode()))
+        result.append(
+            "%s%04x  %s %s %s %s" % (
+                prefix, n, hexa, hexb,
+                lf.decode(), rf.decode(),
+            ),
+        )
         n += length
     return "\n".join(result)
 
@@ -83,6 +88,7 @@ def binary(n,count=16,reverse=False):
         bits.reverse()
     return "".join(bits)
 
-if __name__ == '__main__':
-    import doctest,sys
+if __name__ == "__main__":
+    import doctest
+    import sys
     sys.exit(0 if doctest.testmod().failed == 0 else 1)

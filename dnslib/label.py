@@ -6,16 +6,19 @@
 
 from __future__ import print_function
 
-import fnmatch,re,string
+import fnmatch
+import re
+import string
 
-from dnslib.bit import get_bits,set_bits
+from dnslib.bit import get_bits, set_bits
 from dnslib.buffer import Buffer, BufferError
+
 
 # In theory valid label characters should be letters,digits,hyphen,underscore (LDH)
 # LDH = set(bytearray(b'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'))
 # For compatibility we only escape non-printable characters
 LDH = set(range(33,127))
-ESCAPE = re.compile(r'\\([0-9][0-9][0-9])')
+ESCAPE = re.compile(r"\\([0-9][0-9][0-9])")
 
 class DNSLabelError(Exception):
     pass
@@ -82,16 +85,18 @@ class DNSLabel(object):
         elif type(label) in (list,tuple):
             self.label = tuple(label)
         else:
-            if not label or label in (b'.','.'):
+            if not label or label in (b".","."):
                 self.label = ()
             elif type(label) is not bytes:
-                if type('') != type(b''):
+                if type("") != type(b""):
                     # Py3
                     label = ESCAPE.sub(lambda m:chr(int(m[1])),label)
-                self.label = tuple(label.encode("idna").\
-                                rstrip(b".").split(b"."))
+                self.label = tuple(
+                    label.encode("idna").\
+                                rstrip(b".").split(b"."),
+                )
             else:
-                if type('') == type(b''):
+                if type("") == type(b""):
                     # Py2
                     label = ESCAPE.sub(lambda m:chr(int(m.groups()[0])),label)
                 self.label = tuple(label.rstrip(b".").split(b"."))
@@ -128,7 +133,7 @@ class DNSLabel(object):
             return self
 
     def idna(self):
-        return ".".join([ s.decode("idna") for s in self.label ]) + "."
+        return ".".join([ s.decode("idna") for s in self.label]) + "."
 
     def _decode(self,s):
         if set(s).issubset(LDH):
@@ -139,7 +144,7 @@ class DNSLabel(object):
             return "".join([(chr(c) if (c in LDH) else "\\%03d" % c) for c in s])
 
     def __str__(self):
-        return ".".join([ self._decode(bytearray(s)) for s in self.label ]) + "."
+        return ".".join([ self._decode(bytearray(s)) for s in self.label]) + "."
 
     def __repr__(self):
         return "<DNSLabel: '%s'>" % str(self)
@@ -154,11 +159,11 @@ class DNSLabel(object):
         if type(other) != DNSLabel:
             return self.__eq__(DNSLabel(other))
         else:
-            return [ l.lower() for l in self.label ] == \
-                   [ l.lower() for l in other.label ]
+            return [ l.lower() for l in self.label] == \
+                   [ l.lower() for l in other.label]
 
     def __len__(self):
-        return len(b'.'.join(self.label))
+        return len(b".".join(self.label))
 
 class DNSBuffer(Buffer):
 
@@ -219,7 +224,7 @@ class DNSBuffer(Buffer):
     aaa.bbb.ccc.
     """
 
-    def __init__(self,data=b''):
+    def __init__(self,data=b""):
         """
             Add 'names' dict to cache stored labels
         """
@@ -241,14 +246,18 @@ class DNSBuffer(Buffer):
                 pointer = get_bits(self.unpack("!H")[0],0,14)
                 save = self.offset
                 if last == save:
-                    raise BufferError("Recursive pointer in DNSLabel [offset=%d,pointer=%d,length=%d]" %
-                            (self.offset,pointer,len(self.data)))
+                    raise BufferError(
+                        "Recursive pointer in DNSLabel [offset=%d,pointer=%d,length=%d]" %
+                        (self.offset,pointer,len(self.data)),
+                    )
                 if pointer < self.offset:
                     self.offset = pointer
                 else:
                     # Pointer can't point forwards
-                    raise BufferError("Invalid pointer in DNSLabel [offset=%d,pointer=%d,length=%d]" %
-                            (self.offset,pointer,len(self.data)))
+                    raise BufferError(
+                        "Invalid pointer in DNSLabel [offset=%d,pointer=%d,length=%d]" %
+                        (self.offset,pointer,len(self.data)),
+                    )
                 label.extend(self.decode_name(save).label)
                 self.offset = save
                 done = True
@@ -289,7 +298,7 @@ class DNSBuffer(Buffer):
                     raise DNSLabelError("Label component too long: %r" % element)
                 self.pack("!B",len(element))
                 self.append(element)
-        self.append(b'\x00')
+        self.append(b"\x00")
 
     def encode_name_nocompress(self,name):
         """
@@ -307,8 +316,9 @@ class DNSBuffer(Buffer):
                 raise DNSLabelError("Label component too long: %r" % element)
             self.pack("!B",len(element))
             self.append(element)
-        self.append(b'\x00')
+        self.append(b"\x00")
 
-if __name__ == '__main__':
-    import doctest,sys
+if __name__ == "__main__":
+    import doctest
+    import sys
     sys.exit(0 if doctest.testmod().failed == 0 else 1)

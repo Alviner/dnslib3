@@ -7,23 +7,35 @@
 
 from __future__ import print_function
 
-import base64,binascii,calendar,collections,copy,os.path,random,socket,\
-       string,struct,textwrap,time
-
+import base64
+import binascii
+import calendar
+import collections
+import copy
+import os.path
+import random
+import socket
+import string
+import struct
+import textwrap
+import time
 from itertools import chain
+
 
 try:
     from itertools import zip_longest
 except ImportError:
     from itertools import izip_longest as zip_longest
 
-from dnslib.bit import get_bits,set_bits
-from dnslib.bimap import Bimap,BimapError
-from dnslib.buffer import Buffer,BufferError
-from dnslib.label import DNSLabel,DNSLabelError,DNSBuffer
+from dnslib.bimap import Bimap, BimapError
+from dnslib.bit import get_bits, set_bits
+from dnslib.buffer import Buffer, BufferError
+from dnslib.label import DNSBuffer, DNSLabel, DNSLabelError
 from dnslib.lex import WordLexer
-from dnslib.ranges import BYTES,B,H,I,IP4,IP6,ntuple_range,check_range,\
-                          check_bytes
+from dnslib.ranges import (
+    BYTES, IP4, IP6, B, H, I, check_bytes, check_range, ntuple_range,
+)
+
 
 class DNSError(Exception):
     pass
@@ -44,39 +56,55 @@ def unknown_qtype(name,key,forward):
                 pass
         raise DNSError("%s: Invalid reverse lookup: [%s]" % (name,key))
 
-QTYPE =  Bimap('QTYPE',
-        {1:'A', 2:'NS', 5:'CNAME', 6:'SOA', 10:'NULL', 12:'PTR', 13:'HINFO',
-                    15:'MX', 16:'TXT', 17:'RP', 18:'AFSDB', 24:'SIG', 25:'KEY',
-                    28:'AAAA', 29:'LOC', 33:'SRV', 35:'NAPTR', 36:'KX',
-                    37:'CERT', 38:'A6', 39:'DNAME', 41:'OPT', 42:'APL',
-                    43:'DS', 44:'SSHFP', 45:'IPSECKEY', 46:'RRSIG', 47:'NSEC',
-                    48:'DNSKEY', 49:'DHCID', 50:'NSEC3', 51:'NSEC3PARAM',
-                    52:'TLSA', 53:'HIP', 55:'HIP', 59:'CDS', 60:'CDNSKEY',
-                    61:'OPENPGPKEY', 62:'CSYNC', 63:'ZONEMD', 64:'SVCB',
-                    65:'HTTPS', 99:'SPF', 108:'EUI48', 109:'EUI64', 249:'TKEY',
-                    250:'TSIG', 251:'IXFR', 252:'AXFR', 255:'ANY', 256:'URI',
-                    257:'CAA', 32768:'TA', 32769:'DLV'}, unknown_qtype)
+QTYPE =  Bimap(
+    "QTYPE",
+    {
+        1:"A", 2:"NS", 5:"CNAME", 6:"SOA", 10:"NULL", 12:"PTR", 13:"HINFO",
+        15:"MX", 16:"TXT", 17:"RP", 18:"AFSDB", 24:"SIG", 25:"KEY",
+        28:"AAAA", 29:"LOC", 33:"SRV", 35:"NAPTR", 36:"KX",
+        37:"CERT", 38:"A6", 39:"DNAME", 41:"OPT", 42:"APL",
+        43:"DS", 44:"SSHFP", 45:"IPSECKEY", 46:"RRSIG", 47:"NSEC",
+        48:"DNSKEY", 49:"DHCID", 50:"NSEC3", 51:"NSEC3PARAM",
+        52:"TLSA", 53:"HIP", 55:"HIP", 59:"CDS", 60:"CDNSKEY",
+        61:"OPENPGPKEY", 62:"CSYNC", 63:"ZONEMD", 64:"SVCB",
+        65:"HTTPS", 99:"SPF", 108:"EUI48", 109:"EUI64", 249:"TKEY",
+        250:"TSIG", 251:"IXFR", 252:"AXFR", 255:"ANY", 256:"URI",
+        257:"CAA", 32768:"TA", 32769:"DLV",
+    }, unknown_qtype,
+)
 
-CLASS =  Bimap('CLASS',
-                {1:'IN', 2:'CS', 3:'CH', 4:'Hesiod', 254:'None', 255:'*'},
-                DNSError)
-QR =     Bimap('QR',
-                {0:'QUERY', 1:'RESPONSE'},
-                DNSError)
-RCODE =  Bimap('RCODE',
-                {0:'NOERROR', 1:'FORMERR', 2:'SERVFAIL', 3:'NXDOMAIN',
-                 4:'NOTIMP', 5:'REFUSED', 6:'YXDOMAIN', 7:'YXRRSET',
-                 8:'NXRRSET', 9:'NOTAUTH', 10:'NOTZONE'},
-                DNSError)
-OPCODE = Bimap('OPCODE',{0:'QUERY', 1:'IQUERY', 2:'STATUS', 4:'NOTIFY', 5:'UPDATE'},
-                DNSError)
+CLASS =  Bimap(
+    "CLASS",
+    {1:"IN", 2:"CS", 3:"CH", 4:"Hesiod", 254:"None", 255:"*"},
+    DNSError,
+)
+QR =     Bimap(
+    "QR",
+    {0:"QUERY", 1:"RESPONSE"},
+    DNSError,
+)
+RCODE =  Bimap(
+    "RCODE",
+    {
+        0:"NOERROR", 1:"FORMERR", 2:"SERVFAIL", 3:"NXDOMAIN",
+        4:"NOTIMP", 5:"REFUSED", 6:"YXDOMAIN", 7:"YXRRSET",
+        8:"NXRRSET", 9:"NOTAUTH", 10:"NOTZONE",
+    },
+    DNSError,
+)
+OPCODE = Bimap(
+    "OPCODE",{0:"QUERY", 1:"IQUERY", 2:"STATUS", 4:"NOTIFY", 5:"UPDATE"},
+    DNSError,
+)
 
 def label(label,origin=None):
     if label.endswith("."):
         return DNSLabel(label)
     else:
-        return (origin if isinstance(origin,DNSLabel)
-                       else DNSLabel(origin)).add(label)
+        return (
+            origin if isinstance(origin,DNSLabel)
+            else DNSLabel(origin)
+        ).add(label)
 
 class DNSRecord(object):
 
@@ -129,8 +157,11 @@ class DNSRecord(object):
         except DNSError:
             raise
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking DNSRecord [offset=%d]: %s" % (
-                                    buffer.offset,e))
+            raise DNSError(
+                "Error unpacking DNSRecord [offset=%d]: %s" % (
+                buffer.offset,e,
+                ),
+            )
 
     @classmethod
     def question(cls,qname,qtype="A",qclass="IN"):
@@ -151,12 +182,18 @@ class DNSRecord(object):
             ;; QUESTION SECTION:
             ;www.google.com.                IN      NS
         """
-        return DNSRecord(q=DNSQuestion(qname,getattr(QTYPE,qtype),
-                                             getattr(CLASS,qclass)))
+        return DNSRecord(
+            q=DNSQuestion(
+                qname,getattr(QTYPE,qtype),
+                getattr(CLASS,qclass),
+            ),
+        )
 
 
-    def __init__(self,header=None,questions=None,
-                      rr=None,q=None,a=None,auth=None,ar=None):
+    def __init__(
+        self,header=None,questions=None,
+        rr=None,q=None,a=None,auth=None,ar=None,
+    ):
         """
             Create new DNSRecord
         """
@@ -187,10 +224,14 @@ class DNSRecord(object):
             ;; ANSWER SECTION:
             abc.com.                60      IN      A       1.2.3.4
         """
-        return DNSRecord(DNSHeader(id=self.header.id,
-                                   bitmap=self.header.bitmap,
-                                   qr=1,ra=ra,aa=aa),
-                         q=self.q)
+        return DNSRecord(
+            DNSHeader(
+                id=self.header.id,
+                bitmap=self.header.bitmap,
+                qr=1,ra=ra,aa=aa,
+            ),
+            q=self.q,
+        )
 
     def replyZone(self,zone,ra=1,aa=1):
         """
@@ -205,11 +246,15 @@ class DNSRecord(object):
             ;; ANSWER SECTION:
             abc.com.                60      IN      A       1.2.3.4
         """
-        return DNSRecord(DNSHeader(id=self.header.id,
-                                   bitmap=self.header.bitmap,
-                                   qr=1,ra=ra,aa=aa),
-                         q=self.q,
-                         rr=RR.fromZone(zone))
+        return DNSRecord(
+            DNSHeader(
+                id=self.header.id,
+                bitmap=self.header.bitmap,
+                qr=1,ra=ra,aa=aa,
+            ),
+            q=self.q,
+            rr=RR.fromZone(zone),
+        )
 
     def add_question(self,*q):
         """
@@ -357,9 +402,13 @@ class DNSRecord(object):
             ;; flags: qr aa tc rd ra; QUERY: 0, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
 
         """
-        return DNSRecord(DNSHeader(id=self.header.id,
-                                   bitmap=self.header.bitmap,
-                                   tc=1))
+        return DNSRecord(
+            DNSHeader(
+                id=self.header.id,
+                bitmap=self.header.bitmap,
+                tc=1,
+            ),
+        )
 
     def send(self,dest,port=53,tcp=False,timeout=None,ipv6=False):
         """
@@ -404,7 +453,7 @@ class DNSRecord(object):
             (optionally with prefix and/or sorted RRs)
         """
         s = sorted if sort else lambda x:x
-        sections = [ repr(self.header) ]
+        sections = [ repr(self.header)]
         sections.extend(s([repr(q) for q in self.questions]))
         sections.extend(s([repr(rr) for rr in self.rr]))
         sections.extend(s([repr(rr) for rr in self.auth]))
@@ -419,16 +468,16 @@ class DNSRecord(object):
         z = self.header.toZone().split("\n")
         if self.questions:
             z.append(";; QUESTION SECTION:")
-            [ z.extend(q.toZone().split("\n")) for q in self.questions ]
+            [ z.extend(q.toZone().split("\n")) for q in self.questions]
         if self.rr:
             z.append(";; ANSWER SECTION:")
-            [ z.extend(rr.toZone().split("\n")) for rr in self.rr ]
+            [ z.extend(rr.toZone().split("\n")) for rr in self.rr]
         if self.auth:
             z.append(";; AUTHORITY SECTION:")
-            [ z.extend(rr.toZone().split("\n")) for rr in self.auth ]
+            [ z.extend(rr.toZone().split("\n")) for rr in self.auth]
         if self.ar:
             z.append(";; ADDITIONAL SECTION:")
-            [ z.extend(rr.toZone().split("\n")) for rr in self.ar ]
+            [ z.extend(rr.toZone().split("\n")) for rr in self.ar]
         return prefix + ("\n" + prefix).join(z)
 
     def short(self):
@@ -456,8 +505,8 @@ class DNSRecord(object):
         err = []
         if self.header != other.header:
             err.append((self.header,other.header))
-        for section in ('questions','rr','auth','ar'):
-            if section == 'questions':
+        for section in ("questions","rr","auth","ar"):
+            if section == "questions":
                 k = lambda x:tuple(map(str,(x.qname,x.qtype)))
             else:
                 k = lambda x:tuple(map(str,(x.rname,x.rtype,x.rdata)))
@@ -487,12 +536,12 @@ class DNSHeader(object):
     """
 
     # Ensure attribute values match packet
-    id = H('id')
-    bitmap = H('bitmap')
-    q = H('q')
-    a = H('a')
-    auth = H('auth')
-    ar = H('ar')
+    id = H("id")
+    bitmap = H("bitmap")
+    q = H("q")
+    a = H("a")
+    auth = H("auth")
+    ar = H("ar")
 
     @classmethod
     def parse(cls,buffer):
@@ -503,8 +552,11 @@ class DNSHeader(object):
             (id,bitmap,q,a,auth,ar) = buffer.unpack("!HHHHHH")
             return cls(id,bitmap,q,a,auth,ar)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking DNSHeader [offset=%d]: %s" % (
-                                buffer.offset,e))
+            raise DNSError(
+                "Error unpacking DNSHeader [offset=%d]: %s" % (
+                buffer.offset,e,
+                ),
+            )
 
     def __init__(self,id=None,bitmap=None,q=0,a=0,auth=0,ar=0,**args):
         if id is None:
@@ -625,27 +677,30 @@ class DNSHeader(object):
     rcode = property(get_rcode,set_rcode)
 
     def pack(self,buffer):
-        buffer.pack("!HHHHHH",self.id,self.bitmap,
-                              self.q,self.a,self.auth,self.ar)
+        buffer.pack(
+            "!HHHHHH",self.id,self.bitmap,
+            self.q,self.a,self.auth,self.ar,
+        )
 
     def __repr__(self):
-        f = [ self.aa and 'AA',
-              self.tc and 'TC',
-              self.rd and 'RD',
-              self.ra and 'RA',
-              self.z and 'Z',
-              self.ad and 'AD',
-              self.cd and 'CD']
-        if OPCODE.get(self.opcode) == 'UPDATE':
-            f1='zo'
-            f2='pr'
-            f3='up'
-            f4='ad'
+        f = [ self.aa and "AA",
+              self.tc and "TC",
+              self.rd and "RD",
+              self.ra and "RA",
+              self.z and "Z",
+              self.ad and "AD",
+              self.cd and "CD",
+        ]
+        if OPCODE.get(self.opcode) == "UPDATE":
+            f1="zo"
+            f2="pr"
+            f3="up"
+            f4="ad"
         else:
-            f1='q'
-            f2='a'
-            f3='ns'
-            f4='ar'
+            f1="q"
+            f2="a"
+            f3="ns"
+            f4="ar"
         return "<DNS Header: id=0x%x type=%s opcode=%s flags=%s " \
                             "rcode='%s' %s=%d %s=%d %s=%d %s=%d>" % (
                     self.id,
@@ -653,22 +708,24 @@ class DNSHeader(object):
                     OPCODE.get(self.opcode),
                     ",".join(filter(None,f)),
                     RCODE.get(self.rcode),
-                    f1, self.q, f2, self.a, f3, self.auth, f4, self.ar )
+                    f1, self.q, f2, self.a, f3, self.auth, f4, self.ar, )
 
     def toZone(self):
-        f = [ self.qr and 'qr',
-              self.aa and 'aa',
-              self.tc and 'tc',
-              self.rd and 'rd',
-              self.ra and 'ra',
-              self.z and 'z',
-              self.ad and 'ad',
-              self.cd and 'cd' ]
-        z1 = ';; ->>HEADER<<- opcode: %s, status: %s, id: %d' % (
-                    OPCODE.get(self.opcode),RCODE.get(self.rcode),self.id)
-        z2 = ';; flags: %s; QUERY: %d, ANSWER: %d, AUTHORITY: %d, ADDITIONAL: %d' % (
+        f = [ self.qr and "qr",
+              self.aa and "aa",
+              self.tc and "tc",
+              self.rd and "rd",
+              self.ra and "ra",
+              self.z and "z",
+              self.ad and "ad",
+              self.cd and "cd", ]
+        z1 = ";; ->>HEADER<<- opcode: %s, status: %s, id: %d" % (
+                    OPCODE.get(self.opcode),RCODE.get(self.rcode),self.id,
+        )
+        z2 = ";; flags: %s; QUERY: %d, ANSWER: %d, AUTHORITY: %d, ADDITIONAL: %d" % (
                       " ".join(filter(None,f)),
-                      self.q,self.a,self.auth,self.ar)
+                      self.q,self.a,self.auth,self.ar,
+        )
         return z1 + "\n" + z2
 
     def __str__(self):
@@ -682,7 +739,7 @@ class DNSHeader(object):
             return False
         else:
             # Ignore id
-            attrs = ('qr','aa','tc','rd','ra','z','ad','cd','opcode','rcode')
+            attrs = ("qr","aa","tc","rd","ra","z","ad","cd","opcode","rcode")
             return all([getattr(self,x) == getattr(other,x) for x in attrs])
 
 class DNSQuestion(object):
@@ -698,8 +755,11 @@ class DNSQuestion(object):
             qtype,qclass = buffer.unpack("!HH")
             return cls(qname,qtype,qclass)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking DNSQuestion [offset=%d]: %s" % (
-                                buffer.offset,e))
+            raise DNSError(
+                "Error unpacking DNSQuestion [offset=%d]: %s" % (
+                buffer.offset,e,
+                ),
+            )
 
     def __init__(self,qname=None,qtype=1,qclass=1):
         self.qname = qname
@@ -722,12 +782,15 @@ class DNSQuestion(object):
         buffer.pack("!HH",self.qtype,self.qclass)
 
     def toZone(self):
-       return ';%-30s %-7s %s' % (self.qname,CLASS.get(self.qclass),
-                                             QTYPE[self.qtype])
+       return ";%-30s %-7s %s" % (
+           self.qname,CLASS.get(self.qclass),
+           QTYPE[self.qtype],
+       )
 
     def __repr__(self):
         return "<DNS Question: '%s' qtype=%s qclass=%s>" % (
-                    self.qname, QTYPE.get(self.qtype), CLASS.get(self.qclass))
+                    self.qname, QTYPE.get(self.qtype), CLASS.get(self.qclass),
+        )
 
     def __str__(self):
         return self.toZone()
@@ -740,7 +803,7 @@ class DNSQuestion(object):
             return False
         else:
             # List of attributes to compare when diffing
-            attrs = ('qname','qtype','qclass')
+            attrs = ("qname","qtype","qclass")
             return all([getattr(self,x) == getattr(other,x) for x in attrs])
 
 class EDNSOption(object):
@@ -765,8 +828,8 @@ class EDNSOption(object):
 
     """
 
-    code = H('code')
-    data = BYTES('data')
+    code = H("code")
+    data = BYTES("data")
 
     def __init__(self,code,data):
         self.code = code
@@ -778,11 +841,13 @@ class EDNSOption(object):
 
     def __repr__(self):
         return "<EDNS Option: Code=%d Data='%s'>" % (
-                    self.code,binascii.hexlify(self.data).decode())
+                    self.code,binascii.hexlify(self.data).decode(),
+        )
 
     def toZone(self):
         return "; EDNS: code: %s; data: %s" % (
-                    self.code,binascii.hexlify(self.data).decode())
+                    self.code,binascii.hexlify(self.data).decode(),
+        )
 
     def __str__(self):
         return self.toZone()
@@ -795,7 +860,7 @@ class EDNSOption(object):
             return False
         else:
             # List of attributes to compare when diffing
-            attrs = ('code','data')
+            attrs = ("code","data")
             return all([getattr(self,x) == getattr(other,x) for x in attrs])
 
 class RR(object):
@@ -805,10 +870,10 @@ class RR(object):
         Contains RR header and RD (resource data) instance
     """
 
-    rtype = H('rtype')
-    rclass = H('rclass')
-    ttl = I('ttl')
-    rdlength = H('rdlength')
+    rtype = H("rtype")
+    rclass = H("rclass")
+    ttl = I("ttl")
+    rdlength = H("rdlength")
 
     @classmethod
     def parse(cls,buffer):
@@ -826,13 +891,17 @@ class RR(object):
             else:
                 if rdlength:
                     rdata = RDMAP.get(QTYPE.get(rtype),RD).parse(
-                                            buffer,rdlength)
+                                            buffer,rdlength,
+                    )
                 else:
-                    rdata = ''
+                    rdata = ""
             return cls(rname,rtype,rclass,ttl,rdata)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking RR [offset=%d]: %s" % (
-                                buffer.offset,e))
+            raise DNSError(
+                "Error unpacking RR [offset=%d]: %s" % (
+                buffer.offset,e,
+                ),
+            )
 
     @classmethod
     def fromZone(cls,zone,origin="",ttl=0):
@@ -891,14 +960,18 @@ class RR(object):
 
     def __repr__(self):
         if self.rtype == QTYPE.OPT:
-            s = ["<DNS OPT: edns_ver=%d do=%d ext_rcode=%d udp_len=%d>" % (
-                        self.edns_ver,self.edns_do,self.edns_rcode,self.edns_len)]
+            s = [
+                "<DNS OPT: edns_ver=%d do=%d ext_rcode=%d udp_len=%d>" % (
+                self.edns_ver,self.edns_do,self.edns_rcode,self.edns_len,
+                ),
+            ]
             s.extend([repr(opt) for opt in self.rdata])
             return "\n".join(s)
         else:
             return "<DNS RR: '%s' rtype=%s rclass=%s ttl=%d rdata='%s'>" % (
                     self.rname, QTYPE.get(self.rtype), CLASS.get(self.rclass),
-                    self.ttl, self.rdata)
+                    self.ttl, self.rdata,
+            )
 
     def toZone(self):
         if self.rtype == QTYPE.OPT:
@@ -906,15 +979,18 @@ class RR(object):
                      "; EDNS: version: %d, flags: %s; udp: %d" % (
                              self.edns_ver,
                              "do" if self.edns_do else "",
-                             self.edns_len)
-                    ]
+                             self.edns_len,
+                     ),
+            ]
             edns.extend([str(opt) for opt in self.rdata])
             return "\n".join(edns)
         else:
-            return '%-23s %-7s %-7s %-7s %s' % (self.rname,self.ttl,
-                                                CLASS.get(self.rclass),
-                                                QTYPE[self.rtype],
-                                                self.rdata.toZone())
+            return "%-23s %-7s %-7s %-7s %s" % (
+                self.rname,self.ttl,
+                CLASS.get(self.rclass),
+                QTYPE[self.rtype],
+                self.rdata.toZone(),
+            )
 
     def __str__(self):
         return self.toZone()
@@ -925,14 +1001,14 @@ class RR(object):
     def __eq__(self,other):
         # Handle OPT specially as may be different types (RR/EDNS0)
         if self.rtype == QTYPE.OPT and getattr(other,"rtype",False) == QTYPE.OPT:
-            attrs = ('rname','rclass','rtype','ttl','rdata')
+            attrs = ("rname","rclass","rtype","ttl","rdata")
             return all([getattr(self,x) == getattr(other,x) for x in attrs])
         else:
             if type(other) != type(self):
                 return False
             else:
                 # List of attributes to compare when diffing (ignore ttl)
-                attrs = ('rname','rclass','rtype','rdata')
+                attrs = ("rname","rclass","rtype","rdata")
                 return all([getattr(self,x) == getattr(other,x) for x in attrs])
 
 class EDNS0(RR):
@@ -978,11 +1054,13 @@ class EDNS0(RR):
         True
     """
 
-    def __init__(self,rname=None,rtype=QTYPE.OPT,
-            ext_rcode=0,version=0,flags="",udp_len=0,opts=None):
-        check_range('ext_rcode',ext_rcode,0,255)
-        check_range('version',version,0,255)
-        edns_flags = { 'do' : 1 << 15 }
+    def __init__(
+        self,rname=None,rtype=QTYPE.OPT,
+        ext_rcode=0,version=0,flags="",udp_len=0,opts=None,
+    ):
+        check_range("ext_rcode",ext_rcode,0,255)
+        check_range("version",version,0,255)
+        edns_flags = { "do" : 1 << 15}
         flag_bitmap = sum([edns_flags[x] for x in flags.split()])
         ttl = (ext_rcode << 24) + (version << 16) + flag_bitmap
         if opts and not all([isinstance(o,EDNSOption) for o in opts]):
@@ -1017,8 +1095,10 @@ class RD(object):
             data = buffer.get(length)
             return cls(data)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking RD [offset=%d]: %s" %
-                                    (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking RD [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
@@ -1028,11 +1108,11 @@ class RD(object):
         """
         # Unknown rata - assume hexdump in zone format
         # (DiG prepends "\\# <len>" to the hexdump so get last item)
-        return cls(binascii.unhexlify(rd[-1].encode('ascii')))
+        return cls(binascii.unhexlify(rd[-1].encode("ascii")))
 
     def __init__(self,data=b""):
         # Assume raw bytes
-        check_bytes('data',data)
+        check_bytes("data",data)
         self.data = bytes(data)
 
     def pack(self,buffer):
@@ -1057,7 +1137,7 @@ class RD(object):
     # in subclass (__eq__ will automatically compare defined atttrs)
 
     # Attributes for comparison
-    attrs = ('data',)
+    attrs = ("data",)
 
     def __eq__(self,other):
         if type(other) != type(self):
@@ -1080,7 +1160,7 @@ def _isprint(c):
 
 
 def _bytes_to_printable(b):
-    return '"' + ''.join([ (c if _isprint(c) else "\\{0:03o}".format(ord(c))) for c in b.decode(errors='replace') ]) + '"'
+    return '"' + "".join([ (c if _isprint(c) else "\\{0:03o}".format(ord(c))) for c in b.decode(errors="replace")]) + '"'
 
 class TXT(RD):
     """
@@ -1121,12 +1201,16 @@ class TXT(RD):
                     now_length += txtlength
                     data.append(buffer.get(txtlength))
                 else:
-                    raise DNSError("Invalid TXT record: len(%d) > RD len(%d)" %
-                                            (txtlength,length))
+                    raise DNSError(
+                        "Invalid TXT record: len(%d) > RD len(%d)" %
+                        (txtlength,length),
+                    )
             return cls(data)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking TXT [offset=%d]: %s" %
-                                        (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking TXT [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
@@ -1134,9 +1218,9 @@ class TXT(RD):
 
     def __init__(self,data):
         if type(data) in (tuple,list):
-            self.data = [ _force_bytes(x) for x in data ]
+            self.data = [ _force_bytes(x) for x in data]
         else:
-            self.data = [ _force_bytes(data) ]
+            self.data = [ _force_bytes(data)]
         if any([len(x)>255 for x in self.data]):
             raise DNSError("TXT record too long: %s" % self.data)
 
@@ -1148,14 +1232,14 @@ class TXT(RD):
             buffer.append(ditem)
 
     def toZone(self):
-        return " ".join([ _bytes_to_printable(x) for x in self.data ])
+        return " ".join([ _bytes_to_printable(x) for x in self.data])
 
     def __repr__(self):
-        return ",".join([ _bytes_to_printable(x) for x in self.data ])
+        return ",".join([ _bytes_to_printable(x) for x in self.data])
 
 class A(RD):
 
-    data = IP4('data')
+    data = IP4("data")
 
     @classmethod
     def parse(cls,buffer,length):
@@ -1163,8 +1247,10 @@ class A(RD):
             data = buffer.unpack("!BBBB")
             return cls(data)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking A [offset=%d]: %s" %
-                                (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking A [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
@@ -1216,13 +1302,13 @@ def _format_ipv6(a):
     """
     left = []
     right = []
-    current = 'left'
+    current = "left"
     for i in range(0,16,2):
         group = (a[i] << 8) + a[i+1]
-        if current == 'left':
+        if current == "left":
             if group == 0 and i < 14:
                 if (a[i+2] << 8) + a[i+3] == 0:
-                    current = 'right'
+                    current = "right"
                 else:
                     left.append("0")
             else:
@@ -1244,7 +1330,7 @@ class AAAA(RD):
         a tuple of 16 bytes or in text format
     """
 
-    data = IP6('data')
+    data = IP6("data")
 
     @classmethod
     def parse(cls,buffer,length):
@@ -1252,8 +1338,10 @@ class AAAA(RD):
             data = buffer.unpack("!16B")
             return cls(data)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking AAAA [offset=%d]: %s" %
-                                        (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking AAAA [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
@@ -1273,7 +1361,7 @@ class AAAA(RD):
 
 class MX(RD):
 
-    preference = H('preference')
+    preference = H("preference")
 
     @classmethod
     def parse(cls,buffer,length):
@@ -1282,8 +1370,10 @@ class MX(RD):
             mx = buffer.decode_name()
             return cls(mx,preference)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking MX [offset=%d]: %s" %
-                                        (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking MX [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
@@ -1311,7 +1401,7 @@ class MX(RD):
     def __repr__(self):
         return "%d %s" % (self.preference,self.label)
 
-    attrs = ('preference','label')
+    attrs = ("preference","label")
 
 class CNAME(RD):
 
@@ -1321,8 +1411,10 @@ class CNAME(RD):
             label = buffer.decode_name()
             return cls(label)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking CNAME [offset=%d]: %s" %
-                                        (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking CNAME [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
@@ -1348,7 +1440,7 @@ class CNAME(RD):
     def __repr__(self):
         return "%s" % (self.label)
 
-    attrs = ('label',)
+    attrs = ("label",)
 
 class PTR(CNAME):
     pass
@@ -1361,7 +1453,7 @@ class DNAME(CNAME):
 
 class SOA(RD):
 
-    times = ntuple_range('times',5,0,4294967295)
+    times = ntuple_range("times",5,0,4294967295)
     @classmethod
     def parse(cls,buffer,length):
         try:
@@ -1370,8 +1462,10 @@ class SOA(RD):
             times = buffer.unpack("!IIIII")
             return cls(mname,rname,times)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking SOA [offset=%d]: %s" %
-                                        (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking SOA [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
@@ -1410,16 +1504,18 @@ class SOA(RD):
         buffer.pack("!IIIII", *self.times)
 
     def __repr__(self):
-        return "%s %s %s" % (self.mname,self.rname,
-                             " ".join(map(str,self.times)))
+        return "%s %s %s" % (
+            self.mname,self.rname,
+            " ".join(map(str,self.times)),
+        )
 
-    attrs = ('mname','rname','times')
+    attrs = ("mname","rname","times")
 
 class SRV(RD):
 
-    priority = H('priority')
-    weight = H('weight')
-    port = H('port')
+    priority = H("priority")
+    weight = H("weight")
+    port = H("port")
 
     @classmethod
     def parse(cls,buffer,length):
@@ -1428,8 +1524,10 @@ class SRV(RD):
             target = buffer.decode_name()
             return cls(priority,weight,port,target)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking SRV [offset=%d]: %s" %
-                                        (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking SRV [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
@@ -1459,28 +1557,30 @@ class SRV(RD):
     def __repr__(self):
         return "%d %d %d %s" % (self.priority,self.weight,self.port,self.target)
 
-    attrs = ('priority','weight','port','target')
+    attrs = ("priority","weight","port","target")
 
 class NAPTR(RD):
 
-    order = H('order')
-    preference = H('preference')
+    order = H("order")
+    preference = H("preference")
 
     @classmethod
     def parse(cls, buffer, length):
         try:
-            order, preference = buffer.unpack('!HH')
-            (length,) = buffer.unpack('!B')
+            order, preference = buffer.unpack("!HH")
+            (length,) = buffer.unpack("!B")
             flags = buffer.get(length)
-            (length,) = buffer.unpack('!B')
+            (length,) = buffer.unpack("!B")
             service = buffer.get(length)
-            (length,) = buffer.unpack('!B')
+            (length,) = buffer.unpack("!B")
             regexp = buffer.get(length)
             replacement = buffer.decode_name()
             return cls(order, preference, flags, service, regexp, replacement)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking NAPTR [offset=%d]: %s" %
-                                    (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking NAPTR [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
@@ -1509,12 +1609,12 @@ class NAPTR(RD):
     replacement = property(get_replacement,set_replacement)
 
     def pack(self, buffer):
-        buffer.pack('!HH', self.order, self.preference)
-        buffer.pack('!B', len(self.flags))
+        buffer.pack("!HH", self.order, self.preference)
+        buffer.pack("!B", len(self.flags))
         buffer.append(self.flags)
-        buffer.pack('!B', len(self.service))
+        buffer.pack("!B", len(self.service))
         buffer.append(self.service)
-        buffer.pack('!B', len(self.regexp))
+        buffer.pack("!B", len(self.regexp))
         buffer.append(self.regexp)
         buffer.encode_name(self.replacement)
 
@@ -1522,11 +1622,11 @@ class NAPTR(RD):
         return '%d %d "%s" "%s" "%s" %s' %(
             self.order,self.preference,self.flags.decode(),
             self.service.decode(),
-            self.regexp.decode().replace('\\','\\\\'),
-            self.replacement or '.'
+            self.regexp.decode().replace("\\","\\\\"),
+            self.replacement or ".",
         )
 
-    attrs = ('order','preference','flags','service','regexp','replacement')
+    attrs = ("order","preference","flags","service","regexp","replacement")
 
 class DS(RD):
     """
@@ -1534,9 +1634,9 @@ class DS(RD):
         https://www.rfc-editor.org/rfc/rfc4034#section-5
     """
 
-    key_tag = H('key_tag')
-    algorithm = B('algorithm')
-    digest_type = B('digest_type')
+    key_tag = H("key_tag")
+    algorithm = B("algorithm")
+    digest_type = B("digest_type")
 
     @classmethod
     def parse(cls,buffer,length):
@@ -1545,13 +1645,17 @@ class DS(RD):
             digest = buffer.get(length - 4)
             return cls(key_tag,algorithm,digest_type,digest)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking DS [offset=%d]: %s" %
-                                        (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking DS [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
-        return cls(int(rd[0]),int(rd[1]),int(rd[2]),
-                   binascii.unhexlify("".join(rd[3:]).encode('ascii')))
+        return cls(
+            int(rd[0]),int(rd[1]),int(rd[2]),
+            binascii.unhexlify("".join(rd[3:]).encode("ascii")),
+        )
 
     def __init__(self,key_tag,algorithm,digest_type,digest):
         self.key_tag = key_tag
@@ -1568,15 +1672,16 @@ class DS(RD):
                         self.key_tag,
                         self.algorithm,
                         self.digest_type,
-                        binascii.hexlify(self.digest).decode().upper())
+                        binascii.hexlify(self.digest).decode().upper(),
+        )
 
-    attrs = ('key_tag','algorithm','digest_type','digest')
+    attrs = ("key_tag","algorithm","digest_type","digest")
 
 class DNSKEY(RD):
 
-    flags = H('flags')
-    protocol = B('protocol')
-    algorithm = B('algorithm')
+    flags = H("flags")
+    protocol = B("protocol")
+    algorithm = B("algorithm")
 
     @classmethod
     def parse(cls,buffer,length):
@@ -1585,13 +1690,17 @@ class DNSKEY(RD):
             key = buffer.get(length - 4)
             return cls(flags,protocol,algorithm,key)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking DNSKEY [offset=%d]: %s" %
-                                        (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking DNSKEY [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
-        return cls(int(rd[0]),int(rd[1]),int(rd[2]),
-                   base64.b64decode(("".join(rd[3:])).encode('ascii')))
+        return cls(
+            int(rd[0]),int(rd[1]),int(rd[2]),
+            base64.b64decode(("".join(rd[3:])).encode("ascii")),
+        )
 
     def __init__(self,flags,protocol,algorithm,key):
         self.flags = flags
@@ -1604,45 +1713,57 @@ class DNSKEY(RD):
         buffer.append(self.key)
 
     def __repr__(self):
-        return "%d %d %d %s" % (self.flags,self.protocol,self.algorithm,
-                                base64.b64encode(self.key).decode())
+        return "%d %d %d %s" % (
+            self.flags,self.protocol,self.algorithm,
+            base64.b64encode(self.key).decode(),
+        )
 
-    attrs = ('flags','protocol','algorithm','key')
+    attrs = ("flags","protocol","algorithm","key")
 
 class RRSIG(RD):
 
-    covered = H('covered')
-    algorithm = B('algorithm')
-    labels = B('labels')
-    orig_ttl = I('orig_ttl')
-    sig_exp = I('sig_exp')
-    sig_inc = I('sig_inc')
-    key_tag = H('key_tag')
+    covered = H("covered")
+    algorithm = B("algorithm")
+    labels = B("labels")
+    orig_ttl = I("orig_ttl")
+    sig_exp = I("sig_exp")
+    sig_inc = I("sig_inc")
+    key_tag = H("key_tag")
 
     @classmethod
     def parse(cls,buffer,length):
         try:
             start = buffer.offset
-            (covered,algorithm,labels,
-                orig_ttl,sig_exp,sig_inc,key_tag) = buffer.unpack("!HBBIIIH")
+            (
+                covered,algorithm,labels,
+                orig_ttl,sig_exp,sig_inc,key_tag,
+            ) = buffer.unpack("!HBBIIIH")
             name = buffer.decode_name()
             sig = buffer.get(length - (buffer.offset - start))
-            return cls(covered,algorithm,labels,orig_ttl,sig_exp,sig_inc,key_tag,
-                            name,sig)
+            return cls(
+                covered,algorithm,labels,orig_ttl,sig_exp,sig_inc,key_tag,
+                name,sig,
+            )
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking DNSKEY [offset=%d]: %s" %
-                                        (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking DNSKEY [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
-        return cls(getattr(QTYPE,rd[0]),int(rd[1]),int(rd[2]),int(rd[3]),
-                        int(calendar.timegm(time.strptime(rd[4]+'UTC',"%Y%m%d%H%M%S%Z"))),
-                        int(calendar.timegm(time.strptime(rd[5]+'UTC',"%Y%m%d%H%M%S%Z"))),
-                        int(rd[6]),rd[7],
-                        base64.b64decode(("".join(rd[8:])).encode('ascii')))
+        return cls(
+            getattr(QTYPE,rd[0]),int(rd[1]),int(rd[2]),int(rd[3]),
+            int(calendar.timegm(time.strptime(rd[4]+"UTC","%Y%m%d%H%M%S%Z"))),
+            int(calendar.timegm(time.strptime(rd[5]+"UTC","%Y%m%d%H%M%S%Z"))),
+            int(rd[6]),rd[7],
+            base64.b64decode(("".join(rd[8:])).encode("ascii")),
+        )
 
-    def __init__(self,covered,algorithm,labels,orig_ttl,
-                      sig_exp,sig_inc,key_tag,name,sig):
+    def __init__(
+        self,covered,algorithm,labels,orig_ttl,
+        sig_exp,sig_inc,key_tag,name,sig,
+    ):
         self.covered = covered
         self.algorithm = algorithm
         self.labels = labels
@@ -1654,9 +1775,11 @@ class RRSIG(RD):
         self.sig = sig
 
     def pack(self,buffer):
-        buffer.pack("!HBBIIIH",self.covered,self.algorithm,self.labels,
-                               self.orig_ttl,self.sig_exp,self.sig_inc,
-                               self.key_tag)
+        buffer.pack(
+            "!HBBIIIH",self.covered,self.algorithm,self.labels,
+            self.orig_ttl,self.sig_exp,self.sig_inc,
+            self.key_tag,
+        )
         buffer.encode_name_nocompress(self.name)
         buffer.append(self.sig)
 
@@ -1671,10 +1794,13 @@ class RRSIG(RD):
                         timestamp_fmt.format(time.gmtime(self.sig_inc)),
                         self.key_tag,
                         self.name,
-                        base64.b64encode(self.sig).decode())
+                        base64.b64encode(self.sig).decode(),
+        )
 
-    attrs = ('covered','algorithm','labels','orig_ttl','sig_exp','sig_inc',
-             'key_tag','name','sig')
+    attrs = (
+        "covered","algorithm","labels","orig_ttl","sig_exp","sig_inc",
+        "key_tag","name","sig",
+    )
 
 def decode_type_bitmap(type_bitmap):
     """
@@ -1688,7 +1814,7 @@ def decode_type_bitmap(type_bitmap):
     rrlist = []
     buf = DNSBuffer(type_bitmap)
     while buf.remaining():
-        winnum,winlen = buf.unpack('BB')
+        winnum,winlen = buf.unpack("BB")
         bitmap = bytearray(buf.get(winlen))
         for (pos,value) in enumerate(bitmap):
             for i in range(8):
@@ -1740,8 +1866,10 @@ class NSEC(RD):
             rrlist = decode_type_bitmap(buffer.get(end - buffer.offset))
             return cls(name,rrlist)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking NSEC [offset=%d]: %s" %
-                                        (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking NSEC [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
@@ -1769,7 +1897,7 @@ class NSEC(RD):
     def __repr__(self):
         return "%s %s" % (self.label," ".join(self.rrlist))
 
-    attrs = ('label','rrlist')
+    attrs = ("label","rrlist")
 
 class CAA(RD):
     """
@@ -1794,8 +1922,10 @@ class CAA(RD):
             value = buffer.get(length - tag_length - 2).decode()
             return cls(flags, tag, value)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking CAA [offset=%d]: %s" %
-                               (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking CAA [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
@@ -1805,14 +1935,14 @@ class CAA(RD):
                 flags = hex_parsed[0]
                 tag_length = hex_parsed[1]
             except:
-                hex_parsed = rd[0].decode('hex').encode()
+                hex_parsed = rd[0].decode("hex").encode()
                 flags = ord(hex_parsed[0])
                 tag_length = ord(hex_parsed[1])
             tag = hex_parsed[2:2+tag_length].decode()
             value = hex_parsed[tag_length+2:].decode()
         else:
             (flags, tag, value) = rd
-        return cls(int(flags), tag, value.replace('"', ''))
+        return cls(int(flags), tag, value.replace('"', ""))
 
     def __init__(self, flags, tag, value):
         self.flags = flags
@@ -1887,7 +2017,7 @@ class HTTPS(RD):
 
     """
 
-    attrs = ('priority', 'target', 'params')
+    attrs = ("priority", "target", "params")
 
     def __init__(self, priority, target, params):
         self.priority = priority
@@ -2029,7 +2159,7 @@ class HTTPS(RD):
         (3, b"port"),
         (4, b"ipv4hint"),
         (5, b"echconfig"),
-        (6, b"ipv6hint")
+        (6, b"ipv6hint"),
     ]
 
     @classmethod
@@ -2090,11 +2220,13 @@ class HTTPS(RD):
 
     @classmethod
     def zf_is_special(cls, c):
-        return not (c == 0x21 or \
+        return not (
+            c == 0x21 or \
             c >= 0x23 and c<=0x27 or \
             c >= 0x2A and c<=0x3A or \
             c >= 0x3C and c<=0x5B or \
-            c >= 0x5D and c<=0x7E)
+            c >= 0x5D and c<=0x7E
+        )
 
     @classmethod
     def zf_escape_charstr(cls, s, escape_commas=False):
@@ -2169,8 +2301,8 @@ class SSHFP(RD):
         https://www.rfc-editor.org/rfc/rfc4255.html
     """
 
-    algorithm = B('algorithm')
-    fp_type = B('fp_type')
+    algorithm = B("algorithm")
+    fp_type = B("fp_type")
 
     @classmethod
     def parse(cls,buffer,length):
@@ -2179,13 +2311,17 @@ class SSHFP(RD):
             fingerprint = buffer.get(length - 2)
             return cls(algorithm,fp_type,fingerprint)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking DS [offset=%d]: %s" %
-                                        (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking DS [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
-        return cls(int(rd[0]),int(rd[1]),
-                   binascii.unhexlify("".join(rd[2:]).encode('ascii')))
+        return cls(
+            int(rd[0]),int(rd[1]),
+            binascii.unhexlify("".join(rd[2:]).encode("ascii")),
+        )
 
     def __init__(self,algorithm,fp_type,fingerprint):
         self.algorithm = algorithm
@@ -2200,9 +2336,10 @@ class SSHFP(RD):
         return "%d %d %s" % (
                         self.algorithm,
                         self.fp_type,
-                        binascii.hexlify(self.fingerprint).decode().upper())
+                        binascii.hexlify(self.fingerprint).decode().upper(),
+        )
 
-    attrs = ('algorithm','fp_type','fingerprint')
+    attrs = ("algorithm","fp_type","fingerprint")
 
 class TLSA(RD):
     """
@@ -2210,9 +2347,9 @@ class TLSA(RD):
         https://www.rfc-editor.org/rfc/rfc6698
     """
 
-    cert_usage = B('cert_usage')
-    selector = B('selector')
-    matching_type = B('matching_type')
+    cert_usage = B("cert_usage")
+    selector = B("selector")
+    matching_type = B("matching_type")
 
     @classmethod
     def parse(cls,buffer,length):
@@ -2221,13 +2358,17 @@ class TLSA(RD):
             cert_data = buffer.get(length - 3)
             return cls(cert_usage,selector,matching_type,cert_data)
         except (BufferError,BimapError) as e:
-            raise DNSError("Error unpacking DS [offset=%d]: %s" %
-                                        (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking DS [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls,rd,origin=None):
-        return cls(int(rd[0]),int(rd[1]),int(rd[2]),
-                   binascii.unhexlify("".join(rd[3:]).encode('ascii')))
+        return cls(
+            int(rd[0]),int(rd[1]),int(rd[2]),
+            binascii.unhexlify("".join(rd[3:]).encode("ascii")),
+        )
 
     def __init__(self,cert_usage,selector,matching_type,cert_data):
         self.cert_usage = cert_usage
@@ -2244,9 +2385,10 @@ class TLSA(RD):
                         self.cert_usage,
                         self.selector,
                         self.matching_type,
-                        binascii.hexlify(self.cert_data).decode().upper())
+                        binascii.hexlify(self.cert_data).decode().upper(),
+        )
 
-    attrs = ('cert_usage','selector','matching_type','cert_data')
+    attrs = ("cert_usage","selector","matching_type","cert_data")
 
 class LOC(RD):
     """
@@ -2272,8 +2414,8 @@ class LOC(RD):
     @classmethod
     def parse(cls, buffer, length):
         try:
-            (_, siz, hp, vp) = buffer.unpack('!BBBB')
-            (lat, lon, alt) = buffer.unpack('!III')
+            (_, siz, hp, vp) = buffer.unpack("!BBBB")
+            (lat, lon, alt) = buffer.unpack("!III")
             self = cls.__new__(cls)
             self._lat = lat
             self._lon = lon
@@ -2283,8 +2425,10 @@ class LOC(RD):
             self._vp = vp
             return self
         except (BufferError, BimapError) as e:
-            raise DNSError("Error unpacking LOC [offset=%d]: %s" %
-                                        (buffer.offset,e))
+            raise DNSError(
+                "Error unpacking LOC [offset=%d]: %s" %
+                (buffer.offset,e),
+            )
 
     @classmethod
     def fromZone(cls, rd, origin=None):
@@ -2299,18 +2443,18 @@ class LOC(RD):
             for c in chars:
                 if c in rd:
                     nxt = rd.index(c)
-                    if c in ('S', 'W'):
+                    if c in ("S", "W"):
                         multiplier = -1
                     break
             else:
-                raise DNSError('Missing cardinality [{chars}]'.format(chars=chars))
+                raise DNSError("Missing cardinality [{chars}]".format(chars=chars))
             for n, d in zip(rd[context.idx:nxt], (1, 60, 3600)):
                 decimal += float(n) / d
             context.idx = nxt + 1
             return decimal * multiplier
 
-        args.append(todecimal('NS'))
-        args.append(todecimal('EW'))
+        args.append(todecimal("NS"))
+        args.append(todecimal("EW"))
 
         try:
             while True:
@@ -2345,12 +2489,12 @@ class LOC(RD):
 
     @property
     def lat(self):
-        c = 'N' if self._lat > pow(2, 31) else 'S'
+        c = "N" if self._lat > pow(2, 31) else "S"
         return self._reprcoord(self._lat, c)
 
     @property
     def lon(self):
-        c = 'E' if self._lon > pow(2, 31) else 'W'
+        c = "E" if self._lon > pow(2, 31) else "W"
         return self._reprcoord(self._lon, c)
 
     @property
@@ -2366,24 +2510,24 @@ class LOC(RD):
 
         if int(s) == 0:
             if m == 0:
-                return '{d} {c}'.format(c=c,d=d)
+                return "{d} {c}".format(c=c,d=d)
             else:
-                return '{d} {m} {c}'.format(d=d,m=m,c=c)
-        return '{d} {m} {s:.3f} {c}'.format(d=d,m=m,s=s,c=c)
+                return "{d} {m} {c}".format(d=d,m=m,c=c)
+        return "{d} {m} {s:.3f} {c}".format(d=d,m=m,s=s,c=c)
 
     def __repr__(self):
         DEFAULT_SIZ = 0x12  # 1m
         DEFAULT_HP = 0x16   # 10,000m
         DEFAULT_VP = 0x13   # 10m
 
-        result = '{self.lat} {self.lon} {self.alt:.2f}m'.format(self=self)
+        result = "{self.lat} {self.lon} {self.alt:.2f}m".format(self=self)
 
         if self._vp != DEFAULT_VP:
-            result += ' {self.siz:.2f}m {self.hp:.2f}m {self.vp:.2f}m'.format(self=self)
+            result += " {self.siz:.2f}m {self.hp:.2f}m {self.vp:.2f}m".format(self=self)
         elif self._hp != DEFAULT_HP:
-            result += ' {self.siz:.2f}m {self.hp:.2f}m'.format(self=self)
+            result += " {self.siz:.2f}m {self.hp:.2f}m".format(self=self)
         elif self._siz != DEFAULT_SIZ:
-            result += ' {self.siz:.2f}m'.format(self=self)
+            result += " {self.siz:.2f}m".format(self=self)
 
         return result
 
@@ -2421,8 +2565,10 @@ class RP(RD):
              txt = buffer.decode_name()
              return cls(mbox, txt)
          except (BufferError,BimapError) as e:
-             raise DNSError("Error unpacking RP [offset=%d]: %s" %
-                                         (buffer.offset,e))
+             raise DNSError(
+                 "Error unpacking RP [offset=%d]: %s" %
+                 (buffer.offset,e),
+             )
 
      @classmethod
      def fromZone(cls,rd,origin=None):
@@ -2461,17 +2607,17 @@ class RP(RD):
      def __repr__(self):
          return "%s %s" % (self.mbox,self.txt)
 
-     attrs = ('mbox','txt')
+     attrs = ("mbox","txt")
 
 # Map from RD type to class (used to pack/unpack records)
 # If you add a new RD class you must add to RDMAP
 
-RDMAP = { 'CNAME':CNAME, 'A':A, 'AAAA':AAAA, 'TXT':TXT, 'MX':MX,
-          'PTR':PTR, 'SOA':SOA, 'NS':NS, 'NAPTR': NAPTR, 'SRV':SRV,
-          'DNSKEY':DNSKEY, 'RRSIG':RRSIG, 'NSEC':NSEC, 'CAA':CAA,
-          'HTTPS': HTTPS, 'DS':DS, 'SSHFP':SSHFP, 'TLSA':TLSA, 'LOC':LOC,
-          'RP':RP,
-        }
+RDMAP = { "CNAME":CNAME, "A":A, "AAAA":AAAA, "TXT":TXT, "MX":MX,
+          "PTR":PTR, "SOA":SOA, "NS":NS, "NAPTR": NAPTR, "SRV":SRV,
+          "DNSKEY":DNSKEY, "RRSIG":RRSIG, "NSEC":NSEC, "CAA":CAA,
+          "HTTPS": HTTPS, "DS":DS, "SSHFP":SSHFP, "TLSA":TLSA, "LOC":LOC,
+          "RP":RP,
+}
 
 ##
 ## Zone parser
@@ -2479,7 +2625,7 @@ RDMAP = { 'CNAME':CNAME, 'A':A, 'AAAA':AAAA, 'TXT':TXT, 'MX':MX,
 ##         with circular dependencies
 ##
 
-secs = {'s':1,'m':60,'h':3600,'d':86400,'w':604800}
+secs = {"s":1,"m":60,"h":3600,"d":86400,"w":604800}
 
 def parse_time(s):
     """
@@ -2502,9 +2648,9 @@ class ZoneParser:
 
     def __init__(self,zone,origin="",ttl=0):
         self.l = WordLexer(zone)
-        self.l.commentchars = ';'
-        self.l.nltok = ('NL',None)
-        self.l.spacetok = ('SPACE',None)
+        self.l.commentchars = ";"
+        self.l.nltok = ("NL",None)
+        self.l.spacetok = ("SPACE",None)
         self.i = iter(self.l)
         if type(origin) is DNSLabel:
             self.origin = origin
@@ -2525,7 +2671,7 @@ class ZoneParser:
             self.label = DNSLabel(label)
         elif label == "@":
             self.label = self.origin
-        elif label == '':
+        elif label == "":
             pass
         else:
             self.label = self.origin.add(label)
@@ -2534,15 +2680,17 @@ class ZoneParser:
     def parse_rr(self,rr):
         label = self.parse_label(rr.pop(0))
         ttl = int(rr.pop(0)) if rr[0].isdigit() else self.ttl
-        rclass = rr.pop(0) if rr[0] in ('IN','CH','HS') else 'IN'
+        rclass = rr.pop(0) if rr[0] in ("IN","CH","HS") else "IN"
         rtype = rr.pop(0)
         rdata = rr
         rd = RDMAP.get(rtype,RD)
-        return RR(rname=label,
-                         ttl=ttl,
-                         rclass=getattr(CLASS,rclass),
-                         rtype=getattr(QTYPE,rtype),
-                         rdata=rd.fromZone(rdata,self.origin))
+        return RR(
+            rname=label,
+            ttl=ttl,
+            rclass=getattr(CLASS,rclass),
+            rtype=getattr(QTYPE,rtype),
+            rdata=rd.fromZone(rdata,self.origin),
+        )
 
     def __iter__(self):
         return self.parse()
@@ -2553,25 +2701,25 @@ class ZoneParser:
         try:
             while True:
                 tok,val = next(self.i)
-                if tok == 'NL':
+                if tok == "NL":
                     if not paren and rr:
                         self.prev = tok
                         yield self.parse_rr(rr)
                         rr = []
-                elif tok == 'SPACE' and self.prev == 'NL' and not paren:
-                    rr.append('')
-                elif tok == 'ATOM':
-                    if val == '(':
+                elif tok == "SPACE" and self.prev == "NL" and not paren:
+                    rr.append("")
+                elif tok == "ATOM":
+                    if val == "(":
                         paren = True
-                    elif val == ')':
+                    elif val == ")":
                         paren = False
-                    elif val == '$ORIGIN':
-                        self.expect('SPACE')
-                        origin = self.expect('ATOM')
+                    elif val == "$ORIGIN":
+                        self.expect("SPACE")
+                        origin = self.expect("ATOM")
                         self.origin = self.label = DNSLabel(origin)
-                    elif val == '$TTL':
-                        self.expect('SPACE')
-                        ttl = self.expect('ATOM')
+                    elif val == "$TTL":
+                        self.expect("SPACE")
+                        ttl = self.expect("ATOM")
                         self.ttl = parse_time(ttl)
                     else:
                         rr.append(val)
@@ -2580,6 +2728,7 @@ class ZoneParser:
             if rr:
                 yield self.parse_rr(rr)
 
-if __name__ == '__main__':
-    import doctest,sys
+if __name__ == "__main__":
+    import doctest
+    import sys
     sys.exit(0 if doctest.testmod(optionflags=doctest.ELLIPSIS).failed == 0 else 1)

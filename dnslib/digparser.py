@@ -76,8 +76,10 @@ import os.path
 import re
 import string
 
-from dnslib.dns import (CLASS, EDNS0, QR, QTYPE, RCODE, RD, RDMAP, RR,
-                        DNSError, DNSHeader, DNSQuestion, DNSRecord)
+from dnslib.dns import (
+    CLASS, EDNS0, QR, QTYPE, RCODE, RD, RDMAP, RR, DNSError, DNSHeader,
+    DNSQuestion, DNSRecord,
+)
 from dnslib.lex import WordLexer
 
 
@@ -90,17 +92,17 @@ class DigParser:
     def __init__(self,dig,debug=False):
         self.debug = debug
         self.l = WordLexer(dig)
-        self.l.commentchars = ';'
-        self.l.nltok = ('NL',None)
+        self.l.commentchars = ";"
+        self.l.nltok = ("NL",None)
         self.i = iter(self.l)
 
     def parseHeader(self,l1,l2):
         _,_,_,opcode,_,status,_,_id = l1.split()
-        _,flags,_ = l2.split(';')
+        _,flags,_ = l2.split(";")
         header = DNSHeader(id=int(_id),bitmap=0)
-        header.opcode = getattr(QR,opcode.rstrip(','))
-        header.rcode = getattr(RCODE,status.rstrip(','))
-        for f in ('qr','aa','tc','rd','ra','ad','cd'):
+        header.opcode = getattr(QR,opcode.rstrip(","))
+        header.rcode = getattr(RCODE,status.rstrip(","))
+        for f in ("qr","aa","tc","rd","ra","ad","cd"):
             if f in flags:
                 setattr(header,f,1)
         return header
@@ -113,13 +115,17 @@ class DigParser:
 
     def parseQuestions(self,q,dns):
         for qname,qclass,qtype in q:
-            dns.add_question(DNSQuestion(qname,
-                                         getattr(QTYPE,qtype),
-                                         getattr(CLASS,qclass)))
+            dns.add_question(
+                DNSQuestion(
+                    qname,
+                    getattr(QTYPE,qtype),
+                    getattr(CLASS,qclass),
+                ),
+            )
 
     def parseAnswers(self,a,auth,ar,dns):
-        sect_map = {'a':'add_answer','auth':'add_auth','ar':'add_ar'}
-        for sect in 'a','auth','ar':
+        sect_map = {"a":"add_answer","auth":"add_auth","ar":"add_ar"}
+        for sect in "a","auth","ar":
             f = getattr(dns,sect_map[sect])
             for rr in locals()[sect]:
                 rname,ttl,rclass,rtype = rr[:4]
@@ -131,11 +137,15 @@ class DigParser:
                         # Only support hex encoded data for fallback RD
                         pass
                     else:
-                        f(RR(rname=rname,
+                        f(
+                            RR(
+                                rname=rname,
                                 ttl=int(ttl),
                                 rtype=getattr(QTYPE,rtype),
                                 rclass=getattr(CLASS,rclass),
-                                rdata=rd.fromZone(rdata)))
+                                rdata=rd.fromZone(rdata),
+                            ),
+                        )
                 except DNSError as e:
                     if self.debug:
                         print("DNSError:",e,rr)
@@ -145,15 +155,15 @@ class DigParser:
 
     def parseEDNS(self,edns,dns):
         args = {}
-        m = re.search(r'version: (\d+),',edns)
+        m = re.search(r"version: (\d+),",edns)
         if m:
-            args['version'] = int(m.group(1))
-        m = re.search(r'flags:\s*(.*?);',edns)
+            args["version"] = int(m.group(1))
+        m = re.search(r"flags:\s*(.*?);",edns)
         if m:
-            args['flags'] = m.group(1)
-        m = re.search(r'udp: (\d+)',edns)
+            args["flags"] = m.group(1)
+        m = re.search(r"udp: (\d+)",edns)
         if m:
-            args['udp_len'] = int(m.group(1))
+            args["udp_len"] = int(m.group(1))
         dns.add_ar(EDNS0(**args))
 
     def __iter__(self):
@@ -167,8 +177,8 @@ class DigParser:
         try:
             while True:
                 tok,val = next(self.i)
-                if tok == 'COMMENT':
-                    if val.startswith('; ->>HEADER<<-'):
+                if tok == "COMMENT":
+                    if val.startswith("; ->>HEADER<<-"):
                         # Start new record
                         if dns:
                             # If we have a current record complete this
@@ -177,34 +187,34 @@ class DigParser:
                             yield(dns)
                         dns = DNSRecord()
                         q,a,auth,ar = [],[],[],[]
-                        self.expect('NL')
-                        val2 = self.expect('COMMENT')
+                        self.expect("NL")
+                        val2 = self.expect("COMMENT")
                         dns.header = self.parseHeader(val,val2)
-                    elif val.startswith('; QUESTION'):
+                    elif val.startswith("; QUESTION"):
                         section = q
-                    elif val.startswith('; ANSWER'):
+                    elif val.startswith("; ANSWER"):
                         section = a
-                    elif val.startswith('; AUTHORITY'):
+                    elif val.startswith("; AUTHORITY"):
                         section = auth
-                    elif val.startswith('; ADDITIONAL'):
+                    elif val.startswith("; ADDITIONAL"):
                         section = ar
-                    elif val.startswith('; OPT'):
+                    elif val.startswith("; OPT"):
                         # Only partial support for parsing EDNS records
-                        self.expect('NL')
-                        val2 = self.expect('COMMENT')
+                        self.expect("NL")
+                        val2 = self.expect("COMMENT")
                         self.parseEDNS(val2,dns)
-                    elif val.startswith(';') or tok[1].startswith('<<>>'):
+                    elif val.startswith(";") or tok[1].startswith("<<>>"):
                         pass
                     elif dns and section == q:
                         q.append(val.split())
-                elif tok == 'ATOM':
-                    if val == '(':
+                elif tok == "ATOM":
+                    if val == "(":
                         paren = True
-                    elif val == ')':
+                    elif val == ")":
                         paren = False
                     else:
                         rr.append(val)
-                elif tok == 'NL' and not paren and rr:
+                elif tok == "NL" and not paren and rr:
                     if self.debug:
                         print(">>",rr)
                     section.append(rr)
