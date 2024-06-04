@@ -1,18 +1,13 @@
-# -*- coding: utf-8 -*-
-
 """
-    DNS Client - DiG-like CLI utility.
+DNS Client - DiG-like CLI utility.
 
-    Mostly useful for testing. Can optionally compare results from two
-    nameservers (--diff) or compare results against DiG (--dig).
+Mostly useful for testing. Can optionally compare results from two
+nameservers (--diff) or compare results against DiG (--dig).
 
-    Usage: python -m dnslib.client [options|--help]
+Usage: python -m dnslib.client [options|--help]
 
-    See --help for usage.
+See --help for usage.
 """
-
-from __future__ import print_function
-
 
 try:
     from subprocess import getoutput, getstatusoutput
@@ -24,7 +19,6 @@ import code
 
 from dnslib.digparser import DigParser
 from dnslib.dns import EDNS0, QTYPE, DNSError, DNSHeader, DNSQuestion, DNSRecord
-
 
 if __name__ == "__main__":
     import argparse
@@ -126,9 +120,7 @@ if __name__ == "__main__":
         a = DNSRecord.parse(a_pkt)
 
         if q.header.id != a.header.id:
-            raise DNSError(
-                "Response transaction id does not match query transaction id"
-            )
+            raise DNSError("Response transaction id does not match query transaction id")
 
         if a.header.tc and args.noretry == False:
             # Truncated - retry in TCP mode
@@ -198,16 +190,16 @@ if __name__ == "__main__":
                     print(";;; ERROR: Diff Question differs")
                     for d1, d2 in q.diff(q_diff):
                         if d1:
-                            print(";; - %s" % d1)
+                            print(f";; - {d1}")
                         if d2:
-                            print(";; + %s" % d2)
+                            print(f";; + {d2}")
                 if a != a_diff:
                     print(";;; ERROR: Diff Response differs")
                     for d1, d2 in a.diff(a_diff):
                         if d1:
-                            print(";; - %s" % d1)
+                            print(f";; - {d1}")
                         if d2:
-                            print(";; + %s" % d2)
+                            print(f";; + {d2}")
 
         if args.debug:
             code.interact(local=locals())

@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
-
 """
-    Buffer - simple data buffer
+Buffer - simple data buffer
 """
 
 import binascii
@@ -12,19 +10,18 @@ class BufferError(Exception):
     pass
 
 
-class Buffer(object):
-
+class Buffer:
     """
     A simple data buffer - supports packing/unpacking in struct format
 
     # Needed for Python 2/3 doctest compatibility
     >>> def p(s):
-    ...     if not isinstance(s,str):
+    ...     if not isinstance(s, str):
     ...         return s.decode()
     ...     return s
 
     >>> b = Buffer()
-    >>> b.pack("!BHI",1,2,3)
+    >>> b.pack("!BHI", 1, 2, 3)
     >>> b.offset
     7
     >>> b.append(b"0123456789")
@@ -39,7 +36,7 @@ class Buffer(object):
     bytearray(b'01234')
     >>> bytearray(b.get(5))
     bytearray(b'56789')
-    >>> b.update(7,"2s",b"xx")
+    >>> b.update(7, "2s", b"xx")
     >>> b.offset = 7
     >>> bytearray(b.get(5))
     bytearray(b'xx234')
@@ -64,8 +61,7 @@ class Buffer(object):
         """
         if length > self.remaining():
             raise BufferError(
-                "Not enough bytes [offset=%d,remaining=%d,requested=%d]"
-                % (self.offset, self.remaining(), length),
+                "Not enough bytes [offset=%d,remaining=%d,requested=%d]" % (self.offset, self.remaining(), length),
             )
         start = self.offset
         end = self.offset + length
@@ -109,8 +105,7 @@ class Buffer(object):
             return struct.unpack(fmt, data)
         except struct.error:
             raise BufferError(
-                "Error unpacking struct '%s' <%s>"
-                % (fmt, binascii.hexlify(data).decode()),
+                f"Error unpacking struct '{fmt}' <{binascii.hexlify(data).decode()}>",
             )
 
     def __len__(self):

@@ -1,17 +1,12 @@
-# -*- coding: utf-8 -*-
-
 """
-    DNSLabel/DNSBuffer - DNS label handling & encoding/decoding
+DNSLabel/DNSBuffer - DNS label handling & encoding/decoding
 """
-
-from __future__ import print_function
 
 import fnmatch
 import re
 
 from dnslib.bit import get_bits, set_bits
 from dnslib.buffer import Buffer, BufferError
-
 
 # In theory valid label characters should be letters,digits,hyphen,underscore (LDH)
 # LDH = set(bytearray(b'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'))
@@ -24,23 +19,22 @@ class DNSLabelError(Exception):
     pass
 
 
-class DNSLabel(object):
-
+class DNSLabel:
     """
     Container for DNS label
 
     Supports IDNA encoding for unicode domain names
 
     >>> l1 = DNSLabel("aaa.bbb.ccc.")
-    >>> l2 = DNSLabel([b"aaa",b"bbb",b"ccc"])
+    >>> l2 = DNSLabel([b"aaa", b"bbb", b"ccc"])
     >>> l1 == l2
     True
     >>> l3 = DNSLabel("AAA.BBB.CCC")
     >>> l1 == l3
     True
-    >>> l1 == 'AAA.BBB.CCC'
+    >>> l1 == "AAA.BBB.CCC"
     True
-    >>> x = { l1 : 1 }
+    >>> x = {l1: 1}
     >>> x[l1]
     1
     >>> l1
@@ -82,24 +76,19 @@ class DNSLabel(object):
         - a byte string (split into components separated by b'.')
         - a unicode string which will be encoded according to RFC3490/IDNA
         """
-        if type(label) == DNSLabel:
+        if isinstance(label, DNSLabel):
             self.label = label.label
-        elif type(label) in (list, tuple):
+        elif isinstance(label, (list, tuple)):
             self.label = tuple(label)
         else:
             if not label or label in (b".", "."):
                 self.label = ()
-            elif type(label) is not bytes:
-                if type("") != type(b""):
-                    # Py3
-                    label = ESCAPE.sub(lambda m: chr(int(m[1])), label)
+            elif not isinstance(label, bytes):
+                label = ESCAPE.sub(lambda m: chr(int(m[1])), label)
                 self.label = tuple(
                     label.encode("idna").rstrip(b".").split(b"."),
                 )
             else:
-                if type("") == type(b""):
-                    # Py2
-                    label = ESCAPE.sub(lambda m: chr(int(m.groups()[0])), label)
                 self.label = tuple(label.rstrip(b".").split(b"."))
 
     def add(self, name):
@@ -148,7 +137,7 @@ class DNSLabel(object):
         return ".".join([self._decode(bytearray(s)) for s in self.label]) + "."
 
     def __repr__(self):
-        return "<DNSLabel: '%s'>" % str(self)
+        return f"<DNSLabel: '{str(self)}'>"
 
     def __hash__(self):
         return hash(tuple(map(lambda x: x.lower(), self.label)))
@@ -167,30 +156,29 @@ class DNSLabel(object):
 
 
 class DNSBuffer(Buffer):
-
     """
     Extends Buffer to provide DNS name encoding/decoding (with caching)
 
     # Needed for Python 2/3 doctest compatibility
     >>> def p(s):
-    ...     if not isinstance(s,str):
+    ...     if not isinstance(s, str):
     ...         return s.decode()
     ...     return s
 
     >>> b = DNSBuffer()
-    >>> b.encode_name(b'aaa.bbb.ccc.')
+    >>> b.encode_name(b"aaa.bbb.ccc.")
     >>> len(b)
     13
-    >>> b.encode_name(b'aaa.bbb.ccc.')
+    >>> b.encode_name(b"aaa.bbb.ccc.")
     >>> len(b)
     15
-    >>> b.encode_name(b'xxx.yyy.zzz')
+    >>> b.encode_name(b"xxx.yyy.zzz")
     >>> len(b)
     28
-    >>> b.encode_name(b'zzz.xxx.bbb.ccc.')
+    >>> b.encode_name(b"zzz.xxx.bbb.ccc.")
     >>> len(b)
     38
-    >>> b.encode_name(b'aaa.xxx.bbb.ccc')
+    >>> b.encode_name(b"aaa.xxx.bbb.ccc")
     >>> len(b)
     44
     >>> b.offset = 0
@@ -206,16 +194,16 @@ class DNSBuffer(Buffer):
     aaa.xxx.bbb.ccc.
 
     >>> b = DNSBuffer()
-    >>> b.encode_name([b'a.aa',b'b.bb',b'c.cc'])
+    >>> b.encode_name([b"a.aa", b"b.bb", b"c.cc"])
     >>> b.offset = 0
     >>> len(b.decode_name().label)
     3
 
     >>> b = DNSBuffer()
-    >>> b.encode_name_nocompress(b'aaa.bbb.ccc.')
+    >>> b.encode_name_nocompress(b"aaa.bbb.ccc.")
     >>> len(b)
     13
-    >>> b.encode_name_nocompress(b'aaa.bbb.ccc.')
+    >>> b.encode_name_nocompress(b"aaa.bbb.ccc.")
     >>> len(b)
     26
     >>> b.offset = 0
@@ -229,7 +217,7 @@ class DNSBuffer(Buffer):
         """
         Add 'names' dict to cache stored labels
         """
-        super(DNSBuffer, self).__init__(data)
+        super().__init__(data)
         self.names = {}
 
     def decode_name(self, last=-1):
@@ -268,7 +256,7 @@ class DNSBuffer(Buffer):
                     try:
                         l.decode()
                     except UnicodeDecodeError:
-                        raise BufferError("Invalid label <%s>" % l)
+                        raise BufferError(f"Invalid label <{l}>")
                     label.append(l)
                 else:
                     done = True
@@ -283,7 +271,7 @@ class DNSBuffer(Buffer):
         if not isinstance(name, DNSLabel):
             name = DNSLabel(name)
         if len(name) > 253:
-            raise DNSLabelError("Domain label too long: %r" % name)
+            raise DNSLabelError(f"Domain label too long: {name!r}")
         name = list(name.label)
         while name:
             if tuple(name) in self.names:
@@ -296,7 +284,7 @@ class DNSBuffer(Buffer):
                 self.names[tuple(name)] = self.offset
                 element = name.pop(0)
                 if len(element) > 63:
-                    raise DNSLabelError("Label component too long: %r" % element)
+                    raise DNSLabelError(f"Label component too long: {element!r}")
                 self.pack("!B", len(element))
                 self.append(element)
         self.append(b"\x00")
@@ -309,12 +297,12 @@ class DNSBuffer(Buffer):
         if not isinstance(name, DNSLabel):
             name = DNSLabel(name)
         if len(name) > 253:
-            raise DNSLabelError("Domain label too long: %r" % name)
+            raise DNSLabelError(f"Domain label too long: {name!r}")
         name = list(name.label)
         while name:
             element = name.pop(0)
             if len(element) > 63:
-                raise DNSLabelError("Label component too long: %r" % element)
+                raise DNSLabelError(f"Label component too long: {element!r}")
             self.pack("!B", len(element))
             self.append(element)
         self.append(b"\x00")

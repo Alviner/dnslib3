@@ -1,12 +1,4 @@
-# -*- coding: utf-8 -*-
-
 """
-
-#### From Version 0.9.12 the master repository for _dnslib_ has been moved to GitHub (https://github.com/paulc/dnslib). Please update any links to the original BitBucket repository as this will no longer be maintained.
-
-#### Release 0.9.24 (2024-01-02) will be the last release supporting Python 2.7 and Python <3.7. Supporting old Python versions is increasingly painful and holds back adoption of new features so it's probably time to move on. 
-
-
 dnslib
 ------
 
@@ -87,7 +79,9 @@ Usage
 
 To decode a DNS packet:
 
-    >>> packet = binascii.unhexlify(b'd5ad818000010005000000000377777706676f6f676c6503636f6d0000010001c00c0005000100000005000803777777016cc010c02c0001000100000005000442f95b68c02c0001000100000005000442f95b63c02c0001000100000005000442f95b67c02c0001000100000005000442f95b93')
+    >>> packet = binascii.unhexlify(
+    ...     b"d5ad818000010005000000000377777706676f6f676c6503636f6d0000010001c00c0005000100000005000803777777016cc010c02c0001000100000005000442f95b68c02c0001000100000005000442f95b63c02c0001000100000005000442f95b67c02c0001000100000005000442f95b93"
+    ... )
     >>> d = DNSRecord.parse(packet)
     >>> d
     <DNS Header: id=0xd5ad type=RESPONSE opcode=QUERY flags=RD,RA rcode='NOERROR' q=1 a=5 ns=0 ar=0>
@@ -131,7 +125,7 @@ To create a DNS Request Packet:
     ;; QUESTION SECTION:
     ;google.com.                    IN      A
 
-    >>> d = DNSRecord.question("google.com","MX")
+    >>> d = DNSRecord.question("google.com", "MX")
 
 (This is equivalent to: d = DNSRecord(q=DNSQuestion("google.com",QTYPE.MX) )
 
@@ -146,9 +140,7 @@ To create a DNS Request Packet:
 
 To create a DNS Response Packet:
 
-    >>> d = DNSRecord(DNSHeader(qr=1,aa=1,ra=1),
-    ...               q=DNSQuestion("abc.com"),
-    ...               a=RR("abc.com",rdata=A("1.2.3.4")))
+    >>> d = DNSRecord(DNSHeader(qr=1, aa=1, ra=1), q=DNSQuestion("abc.com"), a=RR("abc.com", rdata=A("1.2.3.4")))
     >>> d
     <DNS Header: id=... type=RESPONSE opcode=QUERY flags=AA,RD,RA rcode='NOERROR' q=1 a=1 ns=0 ar=0>
     <DNS Question: 'abc.com.' qtype=A qclass=IN>
@@ -204,9 +196,9 @@ format defined in RFC1035 (specifically not $INCLUDE)
 
 To create a skeleton reply to a DNS query:
 
-    >>> q = DNSRecord(q=DNSQuestion("abc.com",QTYPE.ANY))
+    >>> q = DNSRecord(q=DNSQuestion("abc.com", QTYPE.ANY))
     >>> a = q.reply()
-    >>> a.add_answer(RR("abc.com",QTYPE.A,rdata=A("1.2.3.4"),ttl=60))
+    >>> a.add_answer(RR("abc.com", QTYPE.A, rdata=A("1.2.3.4"), ttl=60))
     >>> str(DNSRecord.parse(a.pack())) == str(a)
     True
     >>> print(a)
@@ -219,8 +211,8 @@ To create a skeleton reply to a DNS query:
 
 Add additional RRs:
 
-    >>> a.add_answer(RR("xxx.abc.com",QTYPE.A,rdata=A("1.2.3.4")))
-    >>> a.add_answer(RR("xxx.abc.com",QTYPE.AAAA,rdata=AAAA("1234:5678::1")))
+    >>> a.add_answer(RR("xxx.abc.com", QTYPE.A, rdata=A("1.2.3.4")))
+    >>> a.add_answer(RR("xxx.abc.com", QTYPE.AAAA, rdata=AAAA("1234:5678::1")))
     >>> str(DNSRecord.parse(a.pack())) == str(a)
     True
     >>> print(a)
@@ -236,7 +228,7 @@ Add additional RRs:
 
 It is also possible to create a reply from a string in zone file format:
 
-    >>> q = DNSRecord(q=DNSQuestion("abc.com",QTYPE.ANY))
+    >>> q = DNSRecord(q=DNSQuestion("abc.com", QTYPE.ANY))
     >>> a = q.replyZone("abc.com 60 IN CNAME xxx.abc.com")
     >>> print(a)
     ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: ...
@@ -249,7 +241,7 @@ It is also possible to create a reply from a string in zone file format:
     >>> str(DNSRecord.parse(a.pack())) == str(a)
     True
 
-    >>> q = DNSRecord(q=DNSQuestion("abc.com",QTYPE.ANY))
+    >>> q = DNSRecord(q=DNSQuestion("abc.com", QTYPE.ANY))
     >>> a = q.replyZone(textwrap.dedent(z))
     >>> print(a)
     ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: ...
@@ -264,8 +256,8 @@ It is also possible to create a reply from a string in zone file format:
 
 To send a DNSSEC request (EDNS OPT record with DO flag & header AD flag):
 
-    >>> q = DNSRecord(q=DNSQuestion("abc.com",QTYPE.A))
-    >>> q.add_ar(EDNS0(flags="do",udp_len=4096))
+    >>> q = DNSRecord(q=DNSQuestion("abc.com", QTYPE.A))
+    >>> q.add_ar(EDNS0(flags="do", udp_len=4096))
     >>> q.header.ad = 1
     >>> print(q)
     ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: ...
@@ -276,7 +268,7 @@ To send a DNSSEC request (EDNS OPT record with DO flag & header AD flag):
     ;; OPT PSEUDOSECTION
     ; EDNS: version: 0, flags: do; udp: 4096
 
-Note that when using the library you should always validate the received TXID 
+Note that when using the library you should always validate the received TXID
 
     q = DNSRecord.question("abc.com")
     a_pkt = q.send(address,port,tcp=args.tcp)
@@ -381,7 +373,7 @@ Changelog:
                             (Pull-Request #35 - thanks to @jkl-caliber)
                          Fix display of non-printable characters in TXT records
                             (Issue #32 - thanks to @sbv-csis)
-                         Add --strip-aaaa option to dnslib.proxy 
+                         Add --strip-aaaa option to dnslib.proxy
  *   0.9.21  2022-09-19  Minor clean-up / add wheels to distro
  *   0.9.22  2022-09027  Issue #43 (0.9.21 Raises TypeError instead of DNSError when failing to parse HTTPS records)
                          Note that we just fix the exception - there still seems to be a problem with parsing HTTPS records
@@ -422,12 +414,11 @@ Master Repository/Issues:
 
 from dnslib.dns import *
 
-
 version = "0.9.24"
 
 if __name__ == "__main__":
     import doctest
     import sys
-    import textwrap
+    import textwrap  # noqa: F401
 
     sys.exit(0 if doctest.testmod(optionflags=doctest.ELLIPSIS).failed == 0 else 1)

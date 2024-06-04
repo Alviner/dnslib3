@@ -1,53 +1,50 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-    Test dnslib packet encoding/decoding
+Test dnslib packet encoding/decoding
 
-    Reads test files from dnslib/test (by default) containing
-    dump of DNS exchange (packet dump & parse output) and test
-    round-trip parsing - specifically:
+Reads test files from dnslib/test (by default) containing
+dump of DNS exchange (packet dump & parse output) and test
+round-trip parsing - specifically:
 
-        - Parse packet data and zone format data and compare
-        - Repack parsed packet data and compare with original
+    - Parse packet data and zone format data and compare
+    - Repack parsed packet data and compare with original
 
-    This should test the 'parse', 'fromZone' and 'pack' methods of the
-    associated record types.
+This should test the 'parse', 'fromZone' and 'pack' methods of the
+associated record types.
 
-    The original parsed output is created using dnslib by default so systematic
-    encode/decode errors will not be found. By default the test data is
-    checked against 'dig' to ensure that it is correct when generated
-    using the --new option.
+The original parsed output is created using dnslib by default so systematic
+encode/decode errors will not be found. By default the test data is
+checked against 'dig' to ensure that it is correct when generated
+using the --new option.
 
-    By default the module runs in 'unittest' mode (and supports unittest
-    --verbose/--failfast options)
+By default the module runs in 'unittest' mode (and supports unittest
+--verbose/--failfast options)
 
-    The module can also be run in interactive mode (--interactive) and inspect
-    failed tests (--debug)
+The module can also be run in interactive mode (--interactive) and inspect
+failed tests (--debug)
 
-    New test data files can be automatically created using the:
+New test data files can be automatically created using the:
 
-        --new <domain> <type>
+    --new <domain> <type>
 
-    option. The data is checked against dig output and an error raised if
-    this does not match. This is effectively the same as running:
+option. The data is checked against dig output and an error raised if
+this does not match. This is effectively the same as running:
 
-        python -m dnslib.client --query --hex --dig <domain> <type>
+    python -m dnslib.client --query --hex --dig <domain> <type>
 
-    It is possible to manually generate test data files using dnslib.client
-    even if the dig data doesn't match (this is usually due to an unsupported
-    RDATA type which dnslib will output in hex rather then parsing contents).
-    The roundtrip tests will still work in this case (the unknown RDATA is
-    handled as an opaque blob).
+It is possible to manually generate test data files using dnslib.client
+even if the dig data doesn't match (this is usually due to an unsupported
+RDATA type which dnslib will output in hex rather then parsing contents).
+The roundtrip tests will still work in this case (the unknown RDATA is
+handled as an opaque blob).
 
-    In some cases the tests will fail as a result of the zone file parser
-    being more fragile than the packet parser (especially with broken data)
+In some cases the tests will fail as a result of the zone file parser
+being more fragile than the packet parser (especially with broken data)
 
-    Note - unittests are dynamically generated from the test directory contents
-    (matched against the --glob parameter)
+Note - unittests are dynamically generated from the test directory contents
+(matched against the --glob parameter)
 
 """
-
-from __future__ import print_function
 
 import argparse
 import binascii
@@ -59,7 +56,6 @@ import unittest
 
 from dnslib.digparser import DigParser
 from dnslib.dns import EDNS0, DNSRecord
-
 
 try:
     from subprocess import getoutput
@@ -120,23 +116,23 @@ def new_test(domain, qtype, address="8.8.8.8", port=53, nodig=False, dnssec=Fals
                 print(";;; ERROR: Diff Question differs")
                 for d1, d2 in q.diff(q_dig):
                     if d1:
-                        print(";; - %s" % d1)
+                        print(f";; - {d1}")
                     if d2:
-                        print(";; + %s" % d2)
+                        print(f";; + {d2}")
             if a != a_dig:
                 print(";;; ERROR: Diff Response differs")
                 for d1, d2 in a.diff(a_dig):
                     if d1:
-                        print(";; - %s" % d1)
+                        print(f";; - {d1}")
                     if d2:
-                        print(";; + %s" % d2)
+                        print(f";; + {d2}")
             return
 
     if dnssec:
-        fname = "%s-%s-dnssec" % (domain, qtype)
+        fname = f"{domain}-{qtype}-dnssec"
     else:
-        fname = "%s-%s" % (domain, qtype)
-    print("Writing test file: %s" % (fname))
+        fname = f"{domain}-{qtype}"
+    print(f"Writing test file: {fname}")
     with open(fname, "w") as f:
         print(";; Sending:", file=f)
         print(";; QUERY:", binascii.hexlify(q.pack()).decode(), file=f)
@@ -216,16 +212,16 @@ def print_errors(errors):
             print("Question error:")
             for d1, d2 in err_data:
                 if d1:
-                    print(";; - %s" % d1)
+                    print(f";; - {d1}")
                 if d2:
-                    print(";; + %s" % d2)
+                    print(f";; + {d2}")
         elif err == "Reply":
             print("Reply error:")
             for d1, d2 in err_data:
                 if d1:
-                    print(";; - %s" % d1)
+                    print(f";; - {d1}")
                 if d2:
-                    print(";; + %s" % d2)
+                    print(f";; + {d2}")
         elif err == "Question Pack":
             print("Question pack error")
             print("QDATA:", binascii.hexlify(err_data[0]))
@@ -310,7 +306,7 @@ if __name__ == "__main__":
         "--testdir",
         "-t",
         default=testdir,
-        help="Test dir (%s)" % testdir,
+        help=f"Test dir ({testdir})",
     )
     p.add_argument(
         "--testfile",
@@ -336,7 +332,7 @@ if __name__ == "__main__":
         elif args.interactive:
             for f in glob.iglob(args.glob):
                 if os.path.isfile(f):
-                    print("-- %s: " % f, end="")
+                    print(f"-- {f}: ", end="")
                     e = check_decode(f, args.debug)
                     if not args.debug:
                         if e:
@@ -348,7 +344,7 @@ if __name__ == "__main__":
         elif args.unittest:
             for f in glob.iglob(args.glob):
                 if os.path.isfile(f):
-                    test_name = "test_%s" % f
+                    test_name = f"test_{f}"
                     test = test_generator(f)
                     setattr(TestContainer, test_name, test)
             unittest.main(

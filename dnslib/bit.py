@@ -1,10 +1,6 @@
-# -*- coding: utf-8 -*-
-
 """
-    Some basic bit mainpulation utilities
+Some basic bit mainpulation utilities
 """
-from __future__ import print_function
-
 
 FILTER = bytearray([(i < 32 or i > 127) and 46 or i for i in range(256)])
 
@@ -30,20 +26,12 @@ def hexdump(src, length=16, prefix=""):
     while src:
         s, src = src[:length], src[length:]
         l, r = s[:left], s[left:]
-        hexa = "%-*s" % (left * 3, " ".join(["%02x" % x for x in l]))
-        hexb = "%-*s" % (right * 3, " ".join(["%02x" % x for x in r]))
+        hexa = "%-*s" % (left * 3, " ".join([f"{x:02x}" for x in l]))
+        hexb = "%-*s" % (right * 3, " ".join([f"{x:02x}" for x in r]))
         lf = l.translate(FILTER)
         rf = r.translate(FILTER)
         result.append(
-            "%s%04x  %s %s %s %s"
-            % (
-                prefix,
-                n,
-                hexa,
-                hexb,
-                lf.decode(),
-                rf.decode(),
-            ),
+            f"{prefix}{n:04x}  {hexa} {hexb} {lf.decode()} {rf.decode()}",
         )
         n += length
     return "\n".join(result)
@@ -53,9 +41,9 @@ def get_bits(data, offset, bits=1):
     """
     Get specified bits from integer
 
-    >>> bin(get_bits(0b0011100,2))
+    >>> bin(get_bits(0b0011100, 2))
     '0b1'
-    >>> bin(get_bits(0b0011100,0,4))
+    >>> bin(get_bits(0b0011100, 0, 4))
     '0b1100'
 
     """
@@ -67,9 +55,9 @@ def set_bits(data, value, offset, bits=1):
     """
     Set specified bits in integer
 
-    >>> bin(set_bits(0,0b1010,0,4))
+    >>> bin(set_bits(0, 0b1010, 0, 4))
     '0b1010'
-    >>> bin(set_bits(0,0b1010,3,4))
+    >>> bin(set_bits(0, 0b1010, 3, 4))
     '0b1010000'
     """
     mask = ((1 << bits) - 1) << offset
@@ -86,9 +74,9 @@ def binary(n, count=16, reverse=False):
 
     >>> binary(6789)
     '0001101010000101'
-    >>> binary(6789,8)
+    >>> binary(6789, 8)
     '10000101'
-    >>> binary(6789,reverse=True)
+    >>> binary(6789, reverse=True)
     '1010000101011000'
 
     """

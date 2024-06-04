@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
+"""
+InterceptResolver - proxy requests to upstream server
+                    (optionally intercepting)
 
 """
-    InterceptResolver - proxy requests to upstream server
-                        (optionally intercepting)
-
-"""
-from __future__ import print_function
 
 import copy
 import socket
@@ -16,7 +13,6 @@ from dnslib.server import BaseResolver, DNSHandler, DNSLogger, DNSServer
 
 
 class InterceptResolver(BaseResolver):
-
     """
     Intercepting resolver
 
@@ -245,7 +241,7 @@ if __name__ == "__main__":
     if resolver.forward:
         print("    Forwarding:")
         for i in resolver.forward:
-            print("    | ", "%s:%s:%s" % i, sep="")
+            print("    | ", "{}:{}:{}".format(*i), sep="")
     print()
 
     DNSHandler.log = {

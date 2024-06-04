@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
 
 import argparse
 import binascii
@@ -121,13 +120,11 @@ if __name__ == "__main__":
                     p("[%s:parsed ok] >>> %d Diff Errors" % (fname(f), len(diff)))
                     p(pprint.pformat(diff))
             except DNSError as e:
-                p("[%s:exception] >>> %s" % (fname(f), str(e)))
+                p(f"[{fname(f)}:exception] >>> {str(e)}")
             except Exception:
                 raise
                 uncaught += 1
-                exceptions.append(
-                    (binascii.hexlify(fuzzed_pkt), traceback.format_exc(limit=1))
-                )
+                exceptions.append((binascii.hexlify(fuzzed_pkt), traceback.format_exc(limit=1)))
                 p(traceback.format_exc())
 
     p("-----------------------")

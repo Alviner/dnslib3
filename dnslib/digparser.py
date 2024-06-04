@@ -1,98 +1,81 @@
-# -*- coding: utf-8 -*-
 """
 
-    digparser
-    ---------
+digparser
+---------
 
-    Encode/decode DNS packets from DiG textual representation. Parses
-    question (if present: +qr flag) & answer sections and returns list
-    of DNSRecord objects.
+Encode/decode DNS packets from DiG textual representation. Parses
+question (if present: +qr flag) & answer sections and returns list
+of DNSRecord objects.
 
-    Unsupported RR types are skipped (this is different from the packet
-    parser which will store and encode the RDATA as a binary blob)
+Unsupported RR types are skipped (this is different from the packet
+parser which will store and encode the RDATA as a binary blob)
 
-    >>> dig = os.path.join(os.path.dirname(__file__),"test","dig","google.com-A.dig")
-    >>> with open(dig) as f:
-    ...     l = DigParser(f)
-    ...     for record in l:
-    ...         print('---')
-    ...         print(repr(record))
-    ---
-    <DNS Header: id=0x5c9a type=QUERY opcode=QUERY flags=RD rcode='NOERROR' q=1 a=0 ns=0 ar=0>
-    <DNS Question: 'google.com.' qtype=A qclass=IN>
-    ---
-    <DNS Header: id=0x5c9a type=RESPONSE opcode=QUERY flags=RD,RA rcode='NOERROR' q=1 a=16 ns=0 ar=0>
-    <DNS Question: 'google.com.' qtype=A qclass=IN>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.183'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.152'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.172'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.177'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.157'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.153'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.182'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.168'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.178'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.162'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.187'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.167'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.148'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.173'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.158'>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.163'>
+>>> dig = os.path.join(os.path.dirname(__file__), "test", "dig", "google.com-A.dig")
+>>> with open(dig) as f:
+...     l = DigParser(f)
+...     for record in l:
+...         print("---")
+...         print(repr(record))
+---
+<DNS Header: id=0x5c9a type=QUERY opcode=QUERY flags=RD rcode='NOERROR' q=1 a=0 ns=0 ar=0>
+<DNS Question: 'google.com.' qtype=A qclass=IN>
+---
+<DNS Header: id=0x5c9a type=RESPONSE opcode=QUERY flags=RD,RA rcode='NOERROR' q=1 a=16 ns=0 ar=0>
+<DNS Question: 'google.com.' qtype=A qclass=IN>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.183'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.152'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.172'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.177'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.157'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.153'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.182'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.168'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.178'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.162'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.187'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.167'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.148'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.173'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.158'>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.163'>
 
-    >>> dig = os.path.join(os.path.dirname(__file__),"test","dig","google.com-ANY.dig")
-    >>> with open(dig) as f:
-    ...     l = DigParser(f)
-    ...     for record in l:
-    ...         print('---')
-    ...         print(repr(record))
-    ---
-    <DNS Header: id=0xb294 type=QUERY opcode=QUERY flags=RD rcode='NOERROR' q=1 a=0 ns=0 ar=0>
-    <DNS Question: 'google.com.' qtype=ANY qclass=IN>
-    ---
-    <DNS Header: id=0xb294 type=RESPONSE opcode=QUERY flags=RD,RA rcode='NOERROR' q=1 a=14 ns=0 ar=0>
-    <DNS Question: 'google.com.' qtype=ANY qclass=IN>
-    <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='216.58.212.110'>
-    <DNS RR: 'google.com.' rtype=AAAA rclass=IN ttl=299 rdata='2a00:1450:4009:807::200e'>
-    <DNS RR: 'google.com.' rtype=CAA rclass=IN ttl=86399 rdata='0 issue "symantec.com"'>
-    <DNS RR: 'google.com.' rtype=MX rclass=IN ttl=599 rdata='40 alt3.aspmx.l.google.com.'>
-    <DNS RR: 'google.com.' rtype=MX rclass=IN ttl=599 rdata='10 aspmx.l.google.com.'>
-    <DNS RR: 'google.com.' rtype=NS rclass=IN ttl=86399 rdata='ns2.google.com.'>
-    <DNS RR: 'google.com.' rtype=MX rclass=IN ttl=599 rdata='20 alt1.aspmx.l.google.com.'>
-    <DNS RR: 'google.com.' rtype=SOA rclass=IN ttl=59 rdata='ns2.google.com. dns-admin.google.com. 144578247 900 900 1800 60'>
-    <DNS RR: 'google.com.' rtype=NS rclass=IN ttl=86399 rdata='ns1.google.com.'>
-    <DNS RR: 'google.com.' rtype=NS rclass=IN ttl=86399 rdata='ns4.google.com.'>
-    <DNS RR: 'google.com.' rtype=NS rclass=IN ttl=86399 rdata='ns3.google.com.'>
-    <DNS RR: 'google.com.' rtype=MX rclass=IN ttl=599 rdata='50 alt4.aspmx.l.google.com.'>
-    <DNS RR: 'google.com.' rtype=TXT rclass=IN ttl=3599 rdata='"v=spf1 include:_spf.google.com ~all"'>
-    <DNS RR: 'google.com.' rtype=MX rclass=IN ttl=599 rdata='30 alt2.aspmx.l.google.com.'>
+>>> dig = os.path.join(os.path.dirname(__file__), "test", "dig", "google.com-ANY.dig")
+>>> with open(dig) as f:
+...     l = DigParser(f)
+...     for record in l:
+...         print("---")
+...         print(repr(record))
+---
+<DNS Header: id=0xb294 type=QUERY opcode=QUERY flags=RD rcode='NOERROR' q=1 a=0 ns=0 ar=0>
+<DNS Question: 'google.com.' qtype=ANY qclass=IN>
+---
+<DNS Header: id=0xb294 type=RESPONSE opcode=QUERY flags=RD,RA rcode='NOERROR' q=1 a=14 ns=0 ar=0>
+<DNS Question: 'google.com.' qtype=ANY qclass=IN>
+<DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='216.58.212.110'>
+<DNS RR: 'google.com.' rtype=AAAA rclass=IN ttl=299 rdata='2a00:1450:4009:807::200e'>
+<DNS RR: 'google.com.' rtype=CAA rclass=IN ttl=86399 rdata='0 issue "symantec.com"'>
+<DNS RR: 'google.com.' rtype=MX rclass=IN ttl=599 rdata='40 alt3.aspmx.l.google.com.'>
+<DNS RR: 'google.com.' rtype=MX rclass=IN ttl=599 rdata='10 aspmx.l.google.com.'>
+<DNS RR: 'google.com.' rtype=NS rclass=IN ttl=86399 rdata='ns2.google.com.'>
+<DNS RR: 'google.com.' rtype=MX rclass=IN ttl=599 rdata='20 alt1.aspmx.l.google.com.'>
+<DNS RR: 'google.com.' rtype=SOA rclass=IN ttl=59 rdata='ns2.google.com. dns-admin.google.com. 144578247 900 900 1800 60'>
+<DNS RR: 'google.com.' rtype=NS rclass=IN ttl=86399 rdata='ns1.google.com.'>
+<DNS RR: 'google.com.' rtype=NS rclass=IN ttl=86399 rdata='ns4.google.com.'>
+<DNS RR: 'google.com.' rtype=NS rclass=IN ttl=86399 rdata='ns3.google.com.'>
+<DNS RR: 'google.com.' rtype=MX rclass=IN ttl=599 rdata='50 alt4.aspmx.l.google.com.'>
+<DNS RR: 'google.com.' rtype=TXT rclass=IN ttl=3599 rdata='"v=spf1 include:_spf.google.com ~all"'>
+<DNS RR: 'google.com.' rtype=MX rclass=IN ttl=599 rdata='30 alt2.aspmx.l.google.com.'>
 
 """
-
-from __future__ import print_function
 
 import re
 import string
 
-from dnslib.dns import (
-    CLASS,
-    EDNS0,
-    QR,
-    QTYPE,
-    RCODE,
-    RD,
-    RDMAP,
-    RR,
-    DNSError,
-    DNSHeader,
-    DNSQuestion,
-    DNSRecord,
-)
+from dnslib.dns import CLASS, EDNS0, QR, QTYPE, RCODE, RD, RDMAP, RR, DNSError, DNSHeader, DNSQuestion, DNSRecord
 from dnslib.lex import WordLexer
 
 
 class DigParser:
-
     """
     Parse Dig output
     """
@@ -100,7 +83,7 @@ class DigParser:
     def __init__(self, dig, debug=False):
         self.debug = debug
         self.l = WordLexer(dig)
-        self.l.commentchars = ";"
+        self.l.commentchars = set(";")
         self.l.nltok = ("NL", None)
         self.i = iter(self.l)
 
@@ -118,7 +101,7 @@ class DigParser:
     def expect(self, expect):
         t, val = next(self.i)
         if t != expect:
-            raise ValueError("Invalid Token: %s (expecting: %s)" % (t, expect))
+            raise ValueError(f"Invalid Token: {t} (expecting: {expect})")
         return val
 
     def parseQuestions(self, q, dns):
@@ -162,13 +145,13 @@ class DigParser:
 
     def parseEDNS(self, edns, dns):
         args = {}
-        m = re.search("version: (\d+),", edns)
+        m = re.search(r"version: (\d+),", edns)
         if m:
             args["version"] = int(m.group(1))
-        m = re.search("flags:\s*(.*?);", edns)
+        m = re.search(r"flags:\s*(.*?);", edns)
         if m:
             args["flags"] = m.group(1)
-        m = re.search("udp: (\d+)", edns)
+        m = re.search(r"udp: (\d+)", edns)
         if m:
             args["udp_len"] = int(m.group(1))
         dns.add_ar(EDNS0(**args))
@@ -178,9 +161,10 @@ class DigParser:
 
     def parse(self):
         dns = None
-        section = None
+        section = []
         paren = False
         rr = []
+        q, a, auth, ar = [], [], [], []
         try:
             while True:
                 tok, val = next(self.i)
@@ -228,7 +212,7 @@ class DigParser:
                     rr = []
         except StopIteration:
             if rr:
-                self.section.append(rr)
+                section.append(rr)
             if dns:
                 self.parseQuestions(q, dns)
                 self.parseAnswers(a, auth, ar, dns)

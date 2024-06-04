@@ -1,10 +1,8 @@
 """
-    DNS - main dnslib module
+DNS - main dnslib module
 
-    Contains core DNS packet handling code
+Contains core DNS packet handling code
 """
-
-from __future__ import print_function
 
 import base64
 import binascii
@@ -15,28 +13,12 @@ import struct
 import time
 from itertools import chain
 
-
-try:
-    from itertools import zip_longest
-except ImportError:
-    pass
-
 from dnslib.bimap import Bimap, BimapError
 from dnslib.bit import get_bits, set_bits
 from dnslib.buffer import Buffer, BufferError
 from dnslib.label import DNSBuffer, DNSLabel
 from dnslib.lex import WordLexer
-from dnslib.ranges import (
-    BYTES,
-    IP4,
-    IP6,
-    B,
-    H,
-    I,
-    check_bytes,
-    check_range,
-    ntuple_range,
-)
+from dnslib.ranges import BYTES, IP4, IP6, B, H, I, check_bytes, check_range, ntuple_range
 
 
 class DNSError(Exception):
@@ -51,14 +33,14 @@ def unknown_qtype(name, key, forward):
         try:
             return "TYPE%d" % (key,)
         except:
-            raise DNSError("%s: Invalid forward lookup: [%s]" % (name, key))
+            raise DNSError(f"{name}: Invalid forward lookup: [{key}]")
     else:
         if key.startswith("TYPE"):
             try:
                 return int(key[4:])
             except:
                 pass
-        raise DNSError("%s: Invalid reverse lookup: [%s]" % (name, key))
+        raise DNSError(f"{name}: Invalid reverse lookup: [{key}]")
 
 
 QTYPE = Bimap(
@@ -163,17 +145,23 @@ def label(label, origin=None):
         return (origin if isinstance(origin, DNSLabel) else DNSLabel(origin)).add(label)
 
 
-class DNSRecord(object):
-
+class DNSRecord:
     """
     Main DNS class - corresponds to DNS packet & comprises DNSHeader,
     DNSQuestion and RR sections (answer,ns,ar)
 
     >>> d = DNSRecord()
-    >>> d.add_question(DNSQuestion("abc.com")) # Or DNSRecord.question("abc.com")
-    >>> d.add_answer(RR("abc.com",QTYPE.CNAME,ttl=60,rdata=CNAME("ns.abc.com")))
-    >>> d.add_auth(RR("abc.com",QTYPE.SOA,ttl=60,rdata=SOA("ns.abc.com","admin.abc.com",(20140101,3600,3600,3600,3600))))
-    >>> d.add_ar(RR("ns.abc.com",ttl=60,rdata=A("1.2.3.4")))
+    >>> d.add_question(DNSQuestion("abc.com"))  # Or DNSRecord.question("abc.com")
+    >>> d.add_answer(RR("abc.com", QTYPE.CNAME, ttl=60, rdata=CNAME("ns.abc.com")))
+    >>> d.add_auth(
+    ...     RR(
+    ...         "abc.com",
+    ...         QTYPE.SOA,
+    ...         ttl=60,
+    ...         rdata=SOA("ns.abc.com", "admin.abc.com", (20140101, 3600, 3600, 3600, 3600)),
+    ...     )
+    ... )
+    >>> d.add_ar(RR("ns.abc.com", ttl=60, rdata=A("1.2.3.4")))
     >>> print(d)
     ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: ...
     ;; flags: rd; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 1
@@ -234,7 +222,7 @@ class DNSRecord(object):
         ;; QUESTION SECTION:
         ;www.google.com.                IN      A
 
-        >>> q = DNSRecord.question("www.google.com","NS")
+        >>> q = DNSRecord.question("www.google.com", "NS")
         >>> print(q)
         ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: ...
         ;; flags: rd; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
@@ -280,7 +268,7 @@ class DNSRecord(object):
 
         >>> q = DNSRecord.question("abc.com")
         >>> a = q.reply()
-        >>> a.add_answer(RR("abc.com",QTYPE.A,rdata=A("1.2.3.4"),ttl=60))
+        >>> a.add_answer(RR("abc.com", QTYPE.A, rdata=A("1.2.3.4"), ttl=60))
         >>> print(a)
         ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: ...
         ;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
@@ -330,8 +318,7 @@ class DNSRecord(object):
         Add question(s)
 
         >>> q = DNSRecord()
-        >>> q.add_question(DNSQuestion("abc.com"),
-        ...                DNSQuestion("abc.com",QTYPE.MX))
+        >>> q.add_question(DNSQuestion("abc.com"), DNSQuestion("abc.com", QTYPE.MX))
         >>> print(q)
         ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: ...
         ;; flags: rd; QUERY: 2, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
@@ -462,9 +449,9 @@ class DNSRecord(object):
 
         >>> q = DNSRecord.question("abc.com")
         >>> a = q.reply()
-        >>> a.add_answer(*RR.fromZone('abc.com IN TXT %s' % ('x' * 255)))
-        >>> a.add_answer(*RR.fromZone('abc.com IN TXT %s' % ('x' * 255)))
-        >>> a.add_answer(*RR.fromZone('abc.com IN TXT %s' % ('x' * 255)))
+        >>> a.add_answer(*RR.fromZone("abc.com IN TXT %s" % ("x" * 255)))
+        >>> a.add_answer(*RR.fromZone("abc.com IN TXT %s" % ("x" * 255)))
+        >>> a.add_answer(*RR.fromZone("abc.com IN TXT %s" % ("x" * 255)))
         >>> len(a.pack())
         829
         >>> t = a.truncate()
@@ -581,8 +568,8 @@ class DNSRecord(object):
                 k = lambda x: tuple(map(str, (x.qname, x.qtype)))
             else:
                 k = lambda x: tuple(map(str, (x.rname, x.rtype, x.rdata)))
-            a = dict([(k(rr), rr) for rr in getattr(self, section)])
-            b = dict([(k(rr), rr) for rr in getattr(other, section)])
+            a = {k(rr): rr for rr in getattr(self, section)}
+            b = {k(rr): rr for rr in getattr(other, section)}
             sa = set(a)
             sb = set(b)
             for e in sorted(sa.intersection(sb)):
@@ -601,8 +588,7 @@ class DNSRecord(object):
         return self.toZone()
 
 
-class DNSHeader(object):
-
+class DNSHeader:
     """
     DNSHeader section
     """
@@ -781,24 +767,20 @@ class DNSHeader(object):
             f2 = "a"
             f3 = "ns"
             f4 = "ar"
-        return (
-            "<DNS Header: id=0x%x type=%s opcode=%s flags=%s "
-            "rcode='%s' %s=%d %s=%d %s=%d %s=%d>"
-            % (
-                self.id,
-                QR.get(self.qr),
-                OPCODE.get(self.opcode),
-                ",".join(filter(None, f)),
-                RCODE.get(self.rcode),
-                f1,
-                self.q,
-                f2,
-                self.a,
-                f3,
-                self.auth,
-                f4,
-                self.ar,
-            )
+        return "<DNS Header: id=0x%x type=%s opcode=%s flags=%s " "rcode='%s' %s=%d %s=%d %s=%d %s=%d>" % (
+            self.id,
+            QR.get(self.qr),
+            OPCODE.get(self.opcode),
+            ",".join(filter(None, f)),
+            RCODE.get(self.rcode),
+            f1,
+            self.q,
+            f2,
+            self.a,
+            f3,
+            self.auth,
+            f4,
+            self.ar,
         )
 
     def toZone(self):
@@ -841,8 +823,7 @@ class DNSHeader(object):
             return all([getattr(self, x) == getattr(other, x) for x in attrs])
 
 
-class DNSQuestion(object):
-
+class DNSQuestion:
     """
     DNSQuestion section
     """
@@ -890,11 +871,7 @@ class DNSQuestion(object):
         )
 
     def __repr__(self):
-        return "<DNS Question: '%s' qtype=%s qclass=%s>" % (
-            self.qname,
-            QTYPE.get(self.qtype),
-            CLASS.get(self.qclass),
-        )
+        return f"<DNS Question: '{self.qname}' qtype={QTYPE.get(self.qtype)} qclass={CLASS.get(self.qclass)}>"
 
     def __str__(self):
         return self.toZone()
@@ -911,8 +888,7 @@ class DNSQuestion(object):
             return all([getattr(self, x) == getattr(other, x) for x in attrs])
 
 
-class EDNSOption(object):
-
+class EDNSOption:
     """
     EDNSOption pseudo-section
 
@@ -920,13 +896,13 @@ class EDNSOption(object):
     tested due to a lack of data (anyone wanting to improve support or
     provide test data please raise an issue)
 
-    >>> EDNSOption(1,b"1234")
+    >>> EDNSOption(1, b"1234")
     <EDNS Option: Code=1 Data='31323334'>
-    >>> EDNSOption(99999,b"1234")
+    >>> EDNSOption(99999, b"1234")
     Traceback (most recent call last):
     ...
     ValueError: Attribute 'code' must be between 0-65535 [99999]
-    >>> EDNSOption(1,None)
+    >>> EDNSOption(1, None)
     Traceback (most recent call last):
     ...
     ValueError: Attribute 'data' must be instance of ...
@@ -951,10 +927,7 @@ class EDNSOption(object):
         )
 
     def toZone(self):
-        return "; EDNS: code: %s; data: %s" % (
-            self.code,
-            binascii.hexlify(self.data).decode(),
-        )
+        return f"; EDNS: code: {self.code}; data: {binascii.hexlify(self.data).decode()}"
 
     def __str__(self):
         return self.toZone()
@@ -971,8 +944,7 @@ class EDNSOption(object):
             return all([getattr(self, x) == getattr(other, x) for x in attrs])
 
 
-class RR(object):
-
+class RR:
     """
     DNS Resource Record
     Contains RR header and RD (resource data) instance
@@ -1134,7 +1106,6 @@ class RR(object):
 
 
 class EDNS0(RR):
-
     """
 
     ENDS0 pseudo-record
@@ -1146,12 +1117,12 @@ class EDNS0(RR):
     EDNS flags should be passed as a space separated string of options
     (currently only 'do' is supported)
 
-    >>> EDNS0("abc.com",flags="do",udp_len=2048,version=1)
+    >>> EDNS0("abc.com", flags="do", udp_len=2048, version=1)
     <DNS OPT: edns_ver=1 do=1 ext_rcode=0 udp_len=2048>
     >>> print(_)
     ;; OPT PSEUDOSECTION
     ; EDNS: version: 1, flags: do; udp: 2048
-    >>> opt = EDNS0("abc.com",flags="do",ext_rcode=1,udp_len=2048,version=1,opts=[EDNSOption(1,b'abcd')])
+    >>> opt = EDNS0("abc.com", flags="do", ext_rcode=1, udp_len=2048, version=1, opts=[EDNSOption(1, b"abcd")])
     >>> opt
     <DNS OPT: edns_ver=1 do=1 ext_rcode=1 udp_len=2048>
     <EDNS Option: Code=1 Data='61626364'>
@@ -1193,10 +1164,10 @@ class EDNS0(RR):
         ttl = (ext_rcode << 24) + (version << 16) + flag_bitmap
         if opts and not all([isinstance(o, EDNSOption) for o in opts]):
             raise ValueError("Option must be instance of EDNSOption")
-        super(EDNS0, self).__init__(rname, rtype, udp_len, ttl, opts or [])
+        super().__init__(rname, rtype, udp_len, ttl, opts or [])
 
 
-class RD(object):
+class RD:
     """
     Base RD object - also used as placeholder for unknown RD types
 
@@ -1293,16 +1264,7 @@ def _isprint(c):
 
 
 def _bytes_to_printable(b):
-    return (
-        '"'
-        + "".join(
-            [
-                (c if _isprint(c) else "\\{0:03o}".format(ord(c)))
-                for c in b.decode(errors="replace")
-            ]
-        )
-        + '"'
-    )
+    return '"' + "".join([(c if _isprint(c) else f"\\{ord(c):03o}") for c in b.decode(errors="replace")]) + '"'
 
 
 class TXT(RD):
@@ -1310,15 +1272,19 @@ class TXT(RD):
     DNS TXT record. Pass in either a single byte/unicode string, or a tuple/list of byte/unicode strings.
     (byte strings are preferred as this avoids possible encoding issues)
 
-    >>> TXT(b'txtvers=1')
+    >>> TXT(b"txtvers=1")
     "txtvers=1"
-    >>> TXT((b'txtvers=1',))
+    >>> TXT((b"txtvers=1",))
     "txtvers=1"
-    >>> TXT([b'txtvers=1',])
+    >>> TXT(
+    ...     [
+    ...         b"txtvers=1",
+    ...     ]
+    ... )
     "txtvers=1"
-    >>> TXT([b'txtvers=1',b'swver=2.5'])
+    >>> TXT([b"txtvers=1", b"swver=2.5"])
     "txtvers=1","swver=2.5"
-    >>> TXT(['txtvers=1','swver=2.5'])
+    >>> TXT(["txtvers=1", "swver=2.5"])
     "txtvers=1","swver=2.5"
     >>> a = DNSRecord()
     >>> a.add_answer(*RR.fromZone('example.com 60 IN TXT "txtvers=1"'))
@@ -1345,8 +1311,7 @@ class TXT(RD):
                     data.append(buffer.get(txtlength))
                 else:
                     raise DNSError(
-                        "Invalid TXT record: len(%d) > RD len(%d)"
-                        % (txtlength, length),
+                        "Invalid TXT record: len(%d) > RD len(%d)" % (txtlength, length),
                     )
             return cls(data)
         except (BufferError, BimapError) as e:
@@ -1364,12 +1329,12 @@ class TXT(RD):
         else:
             self.data = [_force_bytes(data)]
         if any([len(x) > 255 for x in self.data]):
-            raise DNSError("TXT record too long: %s" % self.data)
+            raise DNSError(f"TXT record too long: {self.data}")
 
     def pack(self, buffer):
         for ditem in self.data:
             if len(ditem) > 255:
-                raise DNSError("TXT record too long: %s" % ditem)
+                raise DNSError(f"TXT record too long: {ditem}")
             buffer.pack("!B", len(ditem))
             buffer.append(ditem)
 
@@ -1436,7 +1401,7 @@ def _format_ipv6(a):
     zero bytes to '::'. Ideally we would use the ipaddress module in
     Python3.3 but can't rely on having this.
 
-    >>> _format_ipv6([0]*16)
+    >>> _format_ipv6([0] * 16)
     '::'
     >>> _format_ipv6(_parse_ipv6("::0012:5678"))
     '::12:5678'
@@ -1455,12 +1420,12 @@ def _format_ipv6(a):
                 else:
                     left.append("0")
             else:
-                left.append("%x" % group)
+                left.append(f"{group:x}")
         else:
             if group == 0 and len(right) == 0:
                 pass
             else:
-                right.append("%x" % group)
+                right.append(f"{group:x}")
     if len(left) < 8:
         return ":".join(left) + "::" + ":".join(right)
     else:
@@ -1468,7 +1433,6 @@ def _format_ipv6(a):
 
 
 class AAAA(RD):
-
     """
     Basic support for AAAA record - accepts IPv6 address data as either
     a tuple of 16 bytes or in text format
@@ -1579,7 +1543,7 @@ class CNAME(RD):
         buffer.encode_name(self.label)
 
     def __repr__(self):
-        return "%s" % (self.label)
+        return f"{self.label}"
 
     attrs = ("label",)
 
@@ -1613,9 +1577,7 @@ class SOA(RD):
 
     @classmethod
     def fromZone(cls, rd, origin=None):
-        return cls(
-            label(rd[0], origin), label(rd[1], origin), [parse_time(t) for t in rd[2:]]
-        )
+        return cls(label(rd[0], origin), label(rd[1], origin), [parse_time(t) for t in rd[2:]])
 
     def __init__(self, mname=None, rname=None, times=None):
         self.mname = mname
@@ -1650,7 +1612,7 @@ class SOA(RD):
         buffer.pack("!IIIII", *self.times)
 
     def __repr__(self):
-        return "%s %s %s" % (
+        return "{} {} {}".format(
             self.mname,
             self.rname,
             " ".join(map(str, self.times)),
@@ -1994,9 +1956,9 @@ def decode_type_bitmap(type_bitmap):
     """
     Parse RR type bitmap in NSEC record
 
-    >>> decode_type_bitmap(binascii.unhexlify(b'0006400080080003'))
+    >>> decode_type_bitmap(binascii.unhexlify(b"0006400080080003"))
     ['A', 'TXT', 'AAAA', 'RRSIG', 'NSEC']
-    >>> decode_type_bitmap(binascii.unhexlify(b'000762008008000380'))
+    >>> decode_type_bitmap(binascii.unhexlify(b"000762008008000380"))
     ['A', 'NS', 'SOA', 'TXT', 'AAAA', 'RRSIG', 'NSEC', 'DNSKEY']
     """
     rrlist = []
@@ -2017,11 +1979,11 @@ def encode_type_bitmap(rrlist):
     Encode RR type bitmap in NSEC record
 
     >>> p = lambda x: print(binascii.hexlify(x).decode())
-    >>> p(encode_type_bitmap(['A','TXT','AAAA','RRSIG','NSEC']))
+    >>> p(encode_type_bitmap(["A", "TXT", "AAAA", "RRSIG", "NSEC"]))
     0006400080080003
-    >>> p(encode_type_bitmap(['A','NS','SOA','TXT','AAAA','RRSIG','NSEC','DNSKEY']))
+    >>> p(encode_type_bitmap(["A", "NS", "SOA", "TXT", "AAAA", "RRSIG", "NSEC", "DNSKEY"]))
     000762008008000380
-    >>> p(encode_type_bitmap(['A','ANY','URI','CAA','TA','DLV']))
+    >>> p(encode_type_bitmap(["A", "ANY", "URI", "CAA", "TA", "DLV"]))
     002040000000000000000000000000000000000000000000000000000000000000010101c08001c0
     """
     rrlist = sorted([getattr(QTYPE, rr) for rr in rrlist])
@@ -2083,7 +2045,7 @@ class NSEC(RD):
         buffer.append(encode_type_bitmap(self.rrlist))
 
     def __repr__(self):
-        return "%s %s" % (self.label, " ".join(self.rrlist))
+        return "{} {}".format(self.label, " ".join(self.rrlist))
 
     attrs = ("label", "rrlist")
 
@@ -2092,7 +2054,7 @@ class CAA(RD):
     """
     CAA record.
 
-    >>> CAA(0, 'issue', 'letsencrypt.org')
+    >>> CAA(0, "issue", "letsencrypt.org")
     0 issue \"letsencrypt.org\"
     >>> a = DNSRecord()
     >>> a.add_answer(*RR.fromZone('example.com 60 IN CAA 0 issue "letsencrypt.org"'))
@@ -2172,7 +2134,9 @@ class HTTPS(RD):
     1 . ipv6hint=2606:4700::6810:84e5,2606:4700::6810:85e5
     >>> HTTPS.fromZone(["1", ".", "key9999=X"])
     1 . key9999=X
-    >>> pcap = binascii.unhexlify(b"0001000001000c0268330568332d323902683200040008681084e5681085e500060020260647000000000000000000681084e5260647000000000000000000681085e5")
+    >>> pcap = binascii.unhexlify(
+    ...     b"0001000001000c0268330568332d323902683200040008681084e5681085e500060020260647000000000000000000681084e5260647000000000000000000681085e5"
+    ... )
     >>> obj = HTTPS.parse(Buffer(pcap), len(pcap))
     >>> obj
     1 . alpn=h3,h3-29,h2 ipv4hint=104.16.132.229,104.16.133.229 ipv6hint=2606:4700::6810:84e5,2606:4700::6810:85e5
@@ -2190,7 +2154,9 @@ class HTTPS(RD):
     True
 
     # Issue 43: HTTPS reads after RD end
-    >>> msg = binascii.unhexlify("93088410000100020000000107646973636f726403636f6d0000410001c00c004100010000012c002b0001000001000c0268330568332d323902683200040014a29f80e9a29f87e8a29f88e8a29f89e8a29f8ae8c00c002e00010000012c005f00410d020000012c632834e5632575c586c907646973636f726403636f6d0044d488ce4a5b9085289c671f0296b2b06cffaca28880c57643befd43d6de433d84ae078b282fc2cdd744f3bea2f201042a7a0d6f3e17ebd887b082bbe30dfda100002904d0000080000000")
+    >>> msg = binascii.unhexlify(
+    ...     "93088410000100020000000107646973636f726403636f6d0000410001c00c004100010000012c002b0001000001000c0268330568332d323902683200040014a29f80e9a29f87e8a29f88e8a29f89e8a29f8ae8c00c002e00010000012c005f00410d020000012c632834e5632575c586c907646973636f726403636f6d0044d488ce4a5b9085289c671f0296b2b06cffaca28880c57643befd43d6de433d84ae078b282fc2cdd744f3bea2f201042a7a0d6f3e17ebd887b082bbe30dfda100002904d0000080000000"
+    ... )
     >>> print(DNSRecord.parse(msg))
     ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 37640
     ;; flags: qr aa cd; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 1
@@ -2232,11 +2198,7 @@ class HTTPS(RD):
                 params.append((k, v))
             return cls(priority, target, params)
         except (BufferError, BimapError) as e:
-            raise DNSError(
-                "Error unpacking HTTPS: "
-                + str(e)
-                + str(binascii.hexlify(buffer.data[buffer.offset :]))
-            )
+            raise DNSError("Error unpacking HTTPS: " + str(e) + str(binascii.hexlify(buffer.data[buffer.offset :])))
 
     def pack(self, buffer):
         buffer.pack("!H", self.priority)
@@ -2254,7 +2216,7 @@ class HTTPS(RD):
         """
         >>> HTTPS.zf_parse_valuelist(bytearray(b'"part1,part2\\\\,part3"'))
         [bytearray(b'part1'), bytearray(b'part2,part3')]
-        >>> HTTPS.zf_parse_valuelist(bytearray(b'part1,part2\\\\044part3'))
+        >>> HTTPS.zf_parse_valuelist(bytearray(b"part1,part2\\\\044part3"))
         [bytearray(b'part1'), bytearray(b'part2,part3')]
         """
         quot = 0x22
@@ -2264,9 +2226,7 @@ class HTTPS(RD):
             return []
         if s[0] == quot:
             if len(s) < 2 or s[-1] != quot:
-                raise DNSError(
-                    'Error decoding HTTPS SvcParamKey value list: unmatched "'
-                )
+                raise DNSError('Error decoding HTTPS SvcParamKey value list: unmatched "')
             s = s[1:-1]
         if len(s) == 0:
             return []
@@ -2302,7 +2262,7 @@ class HTTPS(RD):
         """
         >>> HTTPS.zf_parse_charstr(bytearray(b'"part1,part2\\\\,part3"'))
         bytearray(b'part1,part2,part3')
-        >>> HTTPS.zf_parse_charstr(bytearray(b'part1,part2\\\\044part3'))
+        >>> HTTPS.zf_parse_charstr(bytearray(b"part1,part2\\\\044part3"))
         bytearray(b'part1,part2,part3')
         """
         quot = 0x22
@@ -2311,9 +2271,7 @@ class HTTPS(RD):
             return bytearray()
         if s[0] == quot:
             if len(s) < 2 or s[-1] != quot:
-                raise DNSError(
-                    'Error decoding HTTPS SvcParamKey charstring: unmatched "'
-                )
+                raise DNSError('Error decoding HTTPS SvcParamKey charstring: unmatched "')
             s = s[1:-1]
         esc = False
         i = 0
@@ -2381,9 +2339,7 @@ class HTTPS(RD):
                 b.append(s)
         elif i == 2:  # no alpn
             if v:
-                raise DNSError(
-                    "Error encoding HTTPS SvcParamKey: no-default-alpn should not have a value"
-                )
+                raise DNSError("Error encoding HTTPS SvcParamKey: no-default-alpn should not have a value")
         elif i == 3:  # port
             b.pack("!H", int(v))
         elif i == 4:  # ipv4
@@ -2470,9 +2426,7 @@ class HTTPS(RD):
             ret = cls.zf_format_valuelist(ret)
         elif i == 2:  # no-alpn
             if b.remaining() > 0:
-                raise DNSError(
-                    "Error decoding HTTPS SvcParamKey: no-default-alpn should not have a value"
-                )
+                raise DNSError("Error decoding HTTPS SvcParamKey: no-default-alpn should not have a value")
             ret = ""
         elif i == 3:  # port
             ret = str(b.unpack("!H")[0])
@@ -2497,9 +2451,7 @@ class HTTPS(RD):
     def __repr__(self):
         pri = str(self.priority)
         targ = ".".join([self.zf_tostr(t) for t in self.target]) + "."
-        return " ".join(
-            [pri, targ] + [self.zf_format_param(k, v) for k, v in self.params]
-        )
+        return " ".join([pri, targ] + [self.zf_format_param(k, v) for k, v in self.params])
 
 
 class SSHFP(RD):
@@ -2609,9 +2561,9 @@ class LOC(RD):
     >>> LOC(37.236693, -115.804069, 1381.0, 3000.0, 1.0, 1.0)
     37 14 12.094 N 115 48 14.649 W 1381.00m 3000.00m 1.00m 1.00m
     >>> a = DNSRecord(DNSHeader(id=1456))
-    >>> a.add_answer(*RR.fromZone('area51.local. 60 IN LOC 37 14 12.094 N 115 48 14.649 W 1381.00m'))
-    >>> a.add_answer(*RR.fromZone('area51.local. 60 IN LOC 37 N 115 48 W 1381.00m'))
-    >>> a.add_answer(*RR.fromZone('area51.local. 60 IN LOC 37 14 12.094 N 115 48 14.649 W 1381.00m 1m 10000m 10m'))
+    >>> a.add_answer(*RR.fromZone("area51.local. 60 IN LOC 37 14 12.094 N 115 48 14.649 W 1381.00m"))
+    >>> a.add_answer(*RR.fromZone("area51.local. 60 IN LOC 37 N 115 48 W 1381.00m"))
+    >>> a.add_answer(*RR.fromZone("area51.local. 60 IN LOC 37 14 12.094 N 115 48 14.649 W 1381.00m 1m 10000m 10m"))
     >>> print(a)
     ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 1456
     ;; flags: rd; QUERY: 0, ANSWER: 3, AUTHORITY: 0, ADDITIONAL: 0
@@ -2659,7 +2611,7 @@ class LOC(RD):
                         multiplier = -1
                     break
             else:
-                raise DNSError("Missing cardinality [{chars}]".format(chars=chars))
+                raise DNSError(f"Missing cardinality [{chars}]")
             for n, d in zip(rd[context.idx : nxt], (1, 60, 3600)):
                 decimal += float(n) / d
             context.idx = nxt + 1
@@ -2722,24 +2674,24 @@ class LOC(RD):
 
         if int(s) == 0:
             if m == 0:
-                return "{d} {c}".format(c=c, d=d)
+                return f"{d} {c}"
             else:
-                return "{d} {m} {c}".format(d=d, m=m, c=c)
-        return "{d} {m} {s:.3f} {c}".format(d=d, m=m, s=s, c=c)
+                return f"{d} {m} {c}"
+        return f"{d} {m} {s:.3f} {c}"
 
     def __repr__(self):
         DEFAULT_SIZ = 0x12  # 1m
         DEFAULT_HP = 0x16  # 10,000m
         DEFAULT_VP = 0x13  # 10m
 
-        result = "{self.lat} {self.lon} {self.alt:.2f}m".format(self=self)
+        result = f"{self.lat} {self.lon} {self.alt:.2f}m"
 
         if self._vp != DEFAULT_VP:
-            result += " {self.siz:.2f}m {self.hp:.2f}m {self.vp:.2f}m".format(self=self)
+            result += f" {self.siz:.2f}m {self.hp:.2f}m {self.vp:.2f}m"
         elif self._hp != DEFAULT_HP:
-            result += " {self.siz:.2f}m {self.hp:.2f}m".format(self=self)
+            result += f" {self.siz:.2f}m {self.hp:.2f}m"
         elif self._siz != DEFAULT_SIZ:
-            result += " {self.siz:.2f}m".format(self=self)
+            result += f" {self.siz:.2f}m"
 
         return result
 
@@ -2818,7 +2770,7 @@ class RP(RD):
         buffer.encode_name(self.txt)
 
     def __repr__(self):
-        return "%s %s" % (self.mbox, self.txt)
+        return f"{self.mbox} {self.txt}"
 
     attrs = ("mbox", "txt")
 
@@ -2869,7 +2821,6 @@ def parse_time(s):
 
 
 class ZoneParser:
-
     """
     Zone file parser
 
@@ -2895,7 +2846,7 @@ class ZoneParser:
     def expect(self, expect):
         t, val = next(self.i)
         if t != expect:
-            raise ValueError("Invalid Token: %s (expecting: %s)" % (t, expect))
+            raise ValueError(f"Invalid Token: {t} (expecting: {expect})")
         return val
 
     def parse_label(self, label):

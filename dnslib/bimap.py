@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
-
 """
-    Bimap - bidirectional mapping between code/value
+Bimap - bidirectional mapping between code/value
 """
 
 import sys
@@ -12,8 +10,7 @@ class BimapError(Exception):
     pass
 
 
-class Bimap(object):
-
+class Bimap:
     """
     Bi-directional mapping between code/text.
 
@@ -38,7 +35,7 @@ class Bimap(object):
     >>> class TestError(Exception):
     ...     pass
 
-    >>> TEST = Bimap('TEST',{1:'A', 2:'B', 3:'C'},TestError)
+    >>> TEST = Bimap("TEST", {1: "A", 2: "B", 3: "C"}, TestError)
     >>> TEST[1]
     'A'
     >>> TEST.A
@@ -55,25 +52,25 @@ class Bimap(object):
     '99'
 
     # Test with callable error
-    >>> def _error(name,key,forward):
+    >>> def _error(name, key, forward):
     ...     if forward:
     ...         try:
     ...             return "TEST%d" % (key,)
     ...         except:
-    ...             raise TestError("%s: Invalid forward lookup: [%s]" % (name,key))
+    ...             raise TestError("%s: Invalid forward lookup: [%s]" % (name, key))
     ...     else:
     ...         if key.startswith("TEST"):
     ...             try:
     ...                 return int(key[4:])
     ...             except:
     ...                 pass
-    ...         raise TestError("%s: Invalid reverse lookup: [%s]" % (name,key))
-    >>> TEST2 = Bimap('TEST2',{1:'A', 2:'B', 3:'C'},_error)
+    ...         raise TestError("%s: Invalid reverse lookup: [%s]" % (name, key))
+    >>> TEST2 = Bimap("TEST2", {1: "A", 2: "B", 3: "C"}, _error)
     >>> TEST2[1]
     'A'
     >>> TEST2[9999]
     'TEST9999'
-    >>> TEST2['abcd']
+    >>> TEST2["abcd"]
     Traceback (most recent call last):
     ...
     TestError: TEST2: Invalid forward lookup: [abcd]
@@ -92,7 +89,7 @@ class Bimap(object):
         self.name = name
         self.error = error
         self.forward = forward.copy()
-        self.reverse = dict([(v, k) for (k, v) in list(forward.items())])
+        self.reverse = {v: k for (k, v) in list(forward.items())}
 
     def get(self, k, default=None):
         try:
@@ -107,7 +104,7 @@ class Bimap(object):
             if isinstance(self.error, types.FunctionType):
                 return self.error(self.name, k, True)
             else:
-                raise self.error("%s: Invalid forward lookup: [%s]" % (self.name, k))
+                raise self.error(f"{self.name}: Invalid forward lookup: [{k}]")
 
     def __getattr__(self, k):
         try:
@@ -119,7 +116,7 @@ class Bimap(object):
             if isinstance(self.error, types.FunctionType):
                 return self.error(self.name, k, False)
             else:
-                raise self.error("%s: Invalid reverse lookup: [%s]" % (self.name, k))
+                raise self.error(f"{self.name}: Invalid reverse lookup: [{k}]")
 
 
 if __name__ == "__main__":

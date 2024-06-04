@@ -1,10 +1,5 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 import collections
 import string
-
 
 try:
     from StringIO import StringIO
@@ -12,8 +7,7 @@ except ImportError:
     from io import StringIO
 
 
-class Lexer(object):
-
+class Lexer:
     """
     Simple Lexer base class. Provides basic lexer framework and
     helper functionality (read/peek/pushback etc)
@@ -43,7 +37,7 @@ class Lexer(object):
     'bcd'
     >>> p.read(5)
     'bcd e'
-    >>> p.pushback('e')
+    >>> p.pushback("e")
     >>> p.read(4)
     'efgh'
     """
@@ -54,9 +48,9 @@ class Lexer(object):
     def __init__(self, f, debug=False):
         if hasattr(f, "read"):
             self.f = f
-        elif type(f) == str:
+        elif isinstance(f, str):
             self.f = StringIO(f)
-        elif type(f) == bytes:
+        elif isinstance(f, bytes):
             self.f = StringIO(f.decode())
         else:
             raise ValueError("Invalid input")
@@ -90,7 +84,7 @@ class Lexer(object):
         if s == "":
             self.eof = True
         if self.debug:
-            print("Read: >%s<" % repr(s))
+            print(f"Read: >{repr(s)}<")
         return s
 
     def peek(self, n=1):
@@ -105,7 +99,7 @@ class Lexer(object):
             self.eof = True
         self.q.extend(r)
         if self.debug:
-            print("Peek : >%s<" % repr(s + r))
+            print(f"Peek : >{repr(s + r)}<")
         return s + r
 
     def pushback(self, s):
@@ -121,17 +115,17 @@ class Lexer(object):
             if n.isdigit():
                 n = self.read(3)
                 if self.debug:
-                    print("Escape: >%s<" % n)
+                    print(f"Escape: >{n}<")
                 return chr(int(n, 8))
             elif n[0] in "x":
                 x = self.read(3)
                 if self.debug:
-                    print("Escape: >%s<" % x)
+                    print(f"Escape: >{x}<")
                 return chr(int(x[1:], 16))
             else:
                 c = self.read(1)
                 if self.debug:
-                    print("Escape: >%s<" % c)
+                    print(f"Escape: >{c}<")
                 return self.escape.get(c, c)
         else:
             self.escaped = False
@@ -258,20 +252,19 @@ class WordLexer(Lexer):
 
 
 class RandomLexer(Lexer):
-
     """
     Test lexing from infinite stream.
 
     Extract strings of letters/numbers from /dev/urandom
 
-    >>> import itertools,sys
-    >>> if sys.version[0] == '2':
+    >>> import itertools, sys
+    >>> if sys.version[0] == "2":
     ...     f = open("/dev/urandom")
     ... else:
-    ...     f = open("/dev/urandom",encoding="ascii",errors="replace")
+    ...     f = open("/dev/urandom", encoding="ascii", errors="replace")
     >>> r = RandomLexer(f)
     >>> i = iter(r)
-    >>> len(list(itertools.islice(i,10)))
+    >>> len(list(itertools.islice(i, 10)))
     10
     """
 
@@ -377,7 +370,7 @@ if __name__ == "__main__":
             # Test if we have /dev/urandom
             open("/dev/urandom")
             sys.exit(0 if doctest.testmod().failed == 0 else 1)
-        except IOError:
+        except OSError:
             # Don't run stream test
             doctest.run_docstring_examples(Lexer, globals())
             doctest.run_docstring_examples(WordLexer, globals())

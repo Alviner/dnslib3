@@ -17,6 +17,55 @@ packages = [
 python = "^3.10"
 
 
+[tool.poetry.group.dev.dependencies]
+pre-commit = "3.5"
+ruff = "^0.4.7"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py38"
+
+[tool.ruff.lint]
+select = [
+  "BLE",
+  "C90",
+  "E",
+  "F",
+  "G",
+  "I",
+  "ICN",
+  "PLE",
+  "Q",
+  "RUF006",
+  "RUF100",
+  "T10",
+  "T20",
+  "TID",
+  "UP",
+  "W",
+]
+ignore = [
+  "E712", 
+  "UP007", 
+  "T201", 
+  "T203", 
+  "E731", 
+  "E741", 
+  "E743", 
+  "C901", 
+  "E722",
+  "E501",
+  "F403",
+]
+fixable = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
