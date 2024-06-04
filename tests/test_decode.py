@@ -23,7 +23,7 @@ def fname(val: pathlib.Path):
 def test_decode(fixture: pathlib.Path):
     errors = check_decode(fixture)
     print_errors(errors)
-    assert not errors
+    assert len(errors) == 0
 
 
 def check_decode(f):
