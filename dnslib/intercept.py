@@ -1,21 +1,15 @@
-# -*- coding: utf-8 -*-
+import copy
+import socket
 
-"""
+from dnslib import QTYPE, RCODE, RR, DNSRecord, parse_time
+from dnslib.server import BaseResolver, DNSHandler, DNSLogger, DNSServer
+
+
+__doc__ = """
     InterceptResolver - proxy requests to upstream server
                         (optionally intercepting)
 
 """
-from __future__ import print_function
-
-import binascii
-import copy
-import socket
-import struct
-import sys
-
-from dnslib import QTYPE, RCODE, RR, DNSRecord, parse_time
-from dnslib.label import DNSLabel
-from dnslib.server import BaseResolver, DNSHandler, DNSLogger, DNSServer
 
 
 class InterceptResolver(BaseResolver):
@@ -64,7 +58,7 @@ class InterceptResolver(BaseResolver):
         for i in intercept:
             if i == "-":
                 i = sys.stdin.read()
-            for rr in RR.fromZone(i, ttl=self.ttl):
+            for rr in RR.from_zone(i, ttl=self.ttl):
                 self.zone.append((rr.rname, QTYPE[rr.rtype], rr))
 
     def resolve(self, request, handler):
@@ -240,7 +234,7 @@ if __name__ == "__main__":
     )
 
     for rr in resolver.zone:
-        print("    | ", rr[2].toZone(), sep="")
+        print("    | ", rr[2].to_zone(), sep="")
     if resolver.nxdomain:
         print("    NXDOMAIN:", ", ".join(resolver.nxdomain))
     if resolver.skip:

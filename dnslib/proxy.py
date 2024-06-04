@@ -1,8 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
-import binascii
 import socket
 import struct
 
@@ -68,7 +63,7 @@ class ProxyResolver(BaseResolver):
 class PassthroughDNSHandler(DNSHandler):
     """
     Modify DNSHandler logic (get_reply method) to send directly to
-    upstream DNS server rather then decoding/encoding packet and
+    upstream DNS server rather than decoding/encoding packet and
     passing to Resolver (The request/response packets are still
     parsed and logged but this is not inline)
     """

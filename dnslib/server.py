@@ -1,6 +1,11 @@
-# -*- coding: utf-8 -*-
+import binascii
+import socket
+import struct
+import threading
+import time
 
-"""
+
+__doc__ = """
     DNS server framework - intended to simplify creation of custom resolvers.
 
     Comprises the following components:
@@ -44,6 +49,7 @@
             proxy.py            - DNS proxy
             intercept.py        - Intercepting DNS proxy
 
+        >>> from dnslib import QTYPE, RR, RCODE, DNSError, DNSRecord
         >>> resolver = BaseResolver()
         >>> logger = DNSLogger(prefix=False)
         >>> server = DNSServer(resolver,port=8053,address="localhost",logger=logger)
@@ -79,7 +85,7 @@
         >>> class TestResolver:
         ...     def resolve(self,request,handler):
         ...         reply = request.reply()
-        ...         reply.add_answer(*RR.fromZone("abc.def. 60 A 1.2.3.4"))
+        ...         reply.add_answer(*RR.from_zone("abc.def. 60 A 1.2.3.4"))
         ...         return reply
         >>> resolver = TestResolver()
         >>> logger = DNSLogger(prefix=False)
@@ -99,21 +105,10 @@
 
 
 """
-from __future__ import print_function
 
-import binascii
-import socket
-import struct
-import threading
-import time
+import socketserver
 
-
-try:
-    import socketserver
-except ImportError:
-    import SocketServer as socketserver
-
-from dnslib import QTYPE, RCODE, RR, DNSError, DNSRecord
+from dnslib import QTYPE, RCODE, DNSError, DNSRecord
 
 
 class BaseResolver(object):
@@ -368,7 +363,7 @@ class DNSLogger:
         )
 
     def log_data(self, dnsobj):
-        self.logf("\n%s\n" % (dnsobj.toZone("    ")))
+        self.logf("\n%s\n" % (dnsobj.to_zone("    ")))
 
 
 class UDPServer(socketserver.ThreadingMixIn, socketserver.UDPServer, object):
@@ -402,6 +397,8 @@ class DNSServer(object):
     In most cases only a custom resolver instance is required
     (and possibly logger)
     """
+
+    thread: threading.Thread
 
     def __init__(
         self,

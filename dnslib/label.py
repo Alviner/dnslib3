@@ -11,7 +11,7 @@ import re
 import string
 
 from dnslib.bit import get_bits, set_bits
-from dnslib.buffer import Buffer, BufferError
+from dnslib.buffer import Buffer
 
 
 # In theory valid label characters should be letters,digits,hyphen,underscore (LDH)
