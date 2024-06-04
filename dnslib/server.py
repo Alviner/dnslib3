@@ -1,115 +1,111 @@
-"""
-DNS server framework - intended to simplify creation of custom resolvers.
-
-Comprises the following components:
-
-    DNSServer   - socketserver wrapper (in most cases you should just
-                  need to pass this an appropriate resolver instance
-                  and start in either foreground/background)
-
-    DNSHandler  - handler instantiated by DNSServer to handle requests
-                  The 'handle' method deals with the sending/receiving
-                  packets (handling TCP length prefix) and delegates
-                  the protocol handling to 'get_reply'. This decodes
-                  packet, hands off a DNSRecord to the Resolver instance,
-                  and encodes the returned DNSRecord.
-
-                  In most cases you dont need to change DNSHandler unless
-                  you need to get hold of the raw protocol data in the
-                  Resolver
-
-    DNSLogger   - The class provides a default set of logging functions for
-                  the various stages of the request handled by a DNSServer
-                  instance which are enabled/disabled by flags in the 'log'
-                  class variable.
-
-    Resolver    - Instance implementing a 'resolve' method that receives
-                  the decodes request packet and returns a response.
-
-                  To implement a custom resolver in most cases all you need
-                  is to implement this interface.
-
-                  Note that there is only a single instance of the Resolver
-                  so need to be careful about thread-safety and blocking
-
-    The following examples use the server framework:
-
-        fixedresolver.py    - Simple resolver which will respond to all
-                              requests with a fixed response
-        zoneresolver.py     - Resolver which will take a standard zone
-                              file input
-        shellresolver.py    - Example of a dynamic resolver
-        proxy.py            - DNS proxy
-        intercept.py        - Intercepting DNS proxy
-
-    >>> resolver = BaseResolver()
-    >>> logger = DNSLogger(prefix=False)
-    >>> server = DNSServer(resolver, port=8053, address="localhost", logger=logger)
-    >>> server.start_thread()
-    >>> q = DNSRecord.question("abc.def")
-    >>> a = q.send("localhost", 8053)
-    Request: [...] (udp) / 'abc.def.' (A)
-    Reply: [...] (udp) / 'abc.def.' (A) / NXDOMAIN
-    >>> print(DNSRecord.parse(a))
-    ;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: ...
-    ;; flags: qr aa rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
-    ;; QUESTION SECTION:
-    ;abc.def.                       IN      A
-    >>> server.stop()
-
-    DNSLogger accepts custom logging function (logf)
-
-    >>> resolver = BaseResolver()
-    >>> logger = DNSLogger(prefix=False, logf=lambda s: print(s.upper()))
-    >>> server = DNSServer(resolver, port=8054, address="localhost", logger=logger)
-    >>> server.start_thread()
-    >>> q = DNSRecord.question("abc.def")
-    >>> a = q.send("localhost", 8054)
-    REQUEST: [...] (UDP) / 'ABC.DEF.' (A)
-    REPLY: [...] (UDP) / 'ABC.DEF.' (A) / NXDOMAIN
-    >>> print(DNSRecord.parse(a))
-    ;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: ...
-    ;; flags: qr aa rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
-    ;; QUESTION SECTION:
-    ;abc.def.                       IN      A
-    >>> server.stop()
-
-    >>> class TestResolver:
-    ...     def resolve(self, request, handler):
-    ...         reply = request.reply()
-    ...         reply.add_answer(*RR.fromZone("abc.def. 60 A 1.2.3.4"))
-    ...         return reply
-    >>> resolver = TestResolver()
-    >>> logger = DNSLogger(prefix=False)
-    >>> server = DNSServer(resolver, port=8055, address="localhost", logger=logger, tcp=True)
-    >>> server.start_thread()
-    >>> a = q.send("localhost", 8055, tcp=True)
-    Request: [...] (tcp) / 'abc.def.' (A)
-    Reply: [...] (tcp) / 'abc.def.' (A) / RRs: A
-    >>> print(DNSRecord.parse(a))
-    ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: ...
-    ;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
-    ;; QUESTION SECTION:
-    ;abc.def.                       IN      A
-    ;; ANSWER SECTION:
-    abc.def.                60      IN      A       1.2.3.4
-    >>> server.stop()
-
-
-"""
-
 import binascii
 import socket
+import socketserver
 import struct
 import threading
 import time
 
-try:
-    import socketserver
-except ImportError:
-    import SocketServer as socketserver
-
 from dnslib import QTYPE, RCODE, DNSError, DNSRecord
+
+__doc__ = """
+    DNS server framework - intended to simplify creation of custom resolvers.
+
+    Comprises the following components:
+
+        DNSServer   - socketserver wrapper (in most cases you should just
+                      need to pass this an appropriate resolver instance
+                      and start in either foreground/background)
+
+        DNSHandler  - handler instantiated by DNSServer to handle requests
+                      The 'handle' method deals with the sending/receiving
+                      packets (handling TCP length prefix) and delegates
+                      the protocol handling to 'get_reply'. This decodes
+                      packet, hands off a DNSRecord to the Resolver instance,
+                      and encodes the returned DNSRecord.
+
+                      In most cases you dont need to change DNSHandler unless
+                      you need to get hold of the raw protocol data in the
+                      Resolver
+
+        DNSLogger   - The class provides a default set of logging functions for
+                      the various stages of the request handled by a DNSServer
+                      instance which are enabled/disabled by flags in the 'log'
+                      class variable.
+
+        Resolver    - Instance implementing a 'resolve' method that receives
+                      the decodes request packet and returns a response.
+
+                      To implement a custom resolver in most cases all you need
+                      is to implement this interface.
+
+                      Note that there is only a single instance of the Resolver
+                      so need to be careful about thread-safety and blocking
+
+        The following examples use the server framework:
+
+            fixedresolver.py    - Simple resolver which will respond to all
+                                  requests with a fixed response
+            zoneresolver.py     - Resolver which will take a standard zone
+                                  file input
+            shellresolver.py    - Example of a dynamic resolver
+            proxy.py            - DNS proxy
+            intercept.py        - Intercepting DNS proxy
+
+        >>> resolver = BaseResolver()
+        >>> logger = DNSLogger(prefix=False)
+        >>> server = DNSServer(resolver,port=8053,address="localhost",logger=logger)
+        >>> server.start_thread()
+        >>> q = DNSRecord.question("abc.def")
+        >>> a = q.send("localhost",8053)
+        Request: [...] (udp) / 'abc.def.' (A)
+        Reply: [...] (udp) / 'abc.def.' (A) / NXDOMAIN
+        >>> print(DNSRecord.parse(a))
+        ;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: ...
+        ;; flags: qr aa rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
+        ;; QUESTION SECTION:
+        ;abc.def.                       IN      A
+        >>> server.stop()
+
+        DNSLogger accepts custom logging function (logf)
+
+        >>> resolver = BaseResolver()
+        >>> logger = DNSLogger(prefix=False,logf=lambda s:print(s.upper()))
+        >>> server = DNSServer(resolver,port=8054,address="localhost",logger=logger)
+        >>> server.start_thread()
+        >>> q = DNSRecord.question("abc.def")
+        >>> a = q.send("localhost",8054)
+        REQUEST: [...] (UDP) / 'ABC.DEF.' (A)
+        REPLY: [...] (UDP) / 'ABC.DEF.' (A) / NXDOMAIN
+        >>> print(DNSRecord.parse(a))
+        ;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: ...
+        ;; flags: qr aa rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
+        ;; QUESTION SECTION:
+        ;abc.def.                       IN      A
+        >>> server.stop()
+
+        >>> class TestResolver:
+        ...     def resolve(self,request,handler):
+        ...         reply = request.reply()
+        ...         reply.add_answer(*RR.from_zone("abc.def. 60 A 1.2.3.4"))
+        ...         return reply
+        >>> resolver = TestResolver()
+        >>> logger = DNSLogger(prefix=False)
+        >>> server = DNSServer(resolver,port=8055,address="localhost",logger=logger,tcp=True)
+        >>> server.start_thread()
+        >>> a = q.send("localhost",8055,tcp=True)
+        Request: [...] (tcp) / 'abc.def.' (A)
+        Reply: [...] (tcp) / 'abc.def.' (A) / RRs: A
+        >>> print(DNSRecord.parse(a))
+        ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: ...
+        ;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+        ;; QUESTION SECTION:
+        ;abc.def.                       IN      A
+        ;; ANSWER SECTION:
+        abc.def.                60      IN      A       1.2.3.4
+        >>> server.stop()
+
+
+"""
 
 
 class BaseResolver:
@@ -364,7 +360,7 @@ class DNSLogger:
         )
 
     def log_data(self, dnsobj):
-        self.logf("\n{}\n".format(dnsobj.toZone("    ")))
+        self.logf("\n{}\n".format(dnsobj.to_zone("    ")))
 
 
 class UDPServer(socketserver.ThreadingMixIn, socketserver.UDPServer):
@@ -398,6 +394,8 @@ class DNSServer:
     In most cases only a custom resolver instance is required
     (and possibly logger)
     """
+
+    thread: threading.Thread
 
     def __init__(
         self,
@@ -438,7 +436,7 @@ class DNSServer:
     def stop(self):
         self.server.shutdown()
 
-    def isAlive(self):
+    def is_alive(self):
         return self.thread.is_alive()
 
 

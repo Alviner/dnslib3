@@ -50,22 +50,12 @@ import argparse
 import binascii
 import code
 import glob
-import os
 import os.path
 import unittest
+from subprocess import getoutput
 
 from dnslib.digparser import DigParser
 from dnslib.dns import EDNS0, DNSRecord
-
-try:
-    from subprocess import getoutput
-except ImportError:
-    from commands import getoutput
-
-try:
-    input = raw_input
-except NameError:
-    pass
 
 
 class TestContainer(unittest.TestCase):

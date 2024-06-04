@@ -1,8 +1,7 @@
-"""
-Bimap - bidirectional mapping between code/value
+__doc__ = """
+    Bimap - bidirectional mapping between code/value
 """
 
-import sys
 import types
 
 
@@ -89,7 +88,7 @@ class Bimap:
         self.name = name
         self.error = error
         self.forward = forward.copy()
-        self.reverse = {v: k for (k, v) in list(forward.items())}
+        self.reverse = dict([(v, k) for (k, v) in list(forward.items())])
 
     def get(self, k, default=None):
         try:

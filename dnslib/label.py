@@ -1,12 +1,13 @@
-"""
-DNSLabel/DNSBuffer - DNS label handling & encoding/decoding
-"""
-
 import fnmatch
 import re
 
 from dnslib.bit import get_bits, set_bits
 from dnslib.buffer import Buffer, BufferError
+
+__doc__ = """
+    DNSLabel/DNSBuffer - DNS label handling & encoding/decoding
+"""
+
 
 # In theory valid label characters should be letters,digits,hyphen,underscore (LDH)
 # LDH = set(bytearray(b'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'))
@@ -44,17 +45,17 @@ class DNSLabel:
     >>> l3 = l1.add("xxx.yyy")
     >>> l3
     <DNSLabel: 'xxx.yyy.aaa.bbb.ccc.'>
-    >>> l3.matchSuffix(l1)
+    >>> l3.match_suffix(l1)
     True
-    >>> l3.matchSuffix("xxx.yyy.")
+    >>> l3.match_suffix("xxx.yyy.")
     False
-    >>> l3.matchSuffix("Bbb.ccc.")
+    >>> l3.match_suffix("Bbb.ccc.")
     True
-    >>> l3.stripSuffix("bbb.ccc.")
+    >>> l3.strip_suffix("bbb.ccc.")
     <DNSLabel: 'xxx.yyy.aaa.'>
-    >>> l3.matchGlob("*.[abc]aa.BBB.ccc")
+    >>> l3.match_glob("*.[abc]aa.BBB.ccc")
     True
-    >>> l3.matchGlob("*.[abc]xx.bbb.ccc")
+    >>> l3.match_glob("*.[abc]xx.bbb.ccc")
     False
 
     # Too hard to get unicode doctests to work on Python 3.2
@@ -100,24 +101,24 @@ class DNSLabel:
             new.label += self.label
         return new
 
-    def matchGlob(self, pattern):
+    def match_glob(self, pattern):
         if type(pattern) != DNSLabel:
             pattern = DNSLabel(pattern)
         return fnmatch.fnmatch(str(self).lower(), str(pattern).lower())
 
-    def matchSuffix(self, suffix):
+    def match_suffix(self, suffix):
         """
         Return True if label suffix matches
         """
         suffix = DNSLabel(suffix)
         return DNSLabel(self.label[-len(suffix.label) :]) == suffix
 
-    def stripSuffix(self, suffix):
+    def strip_suffix(self, suffix):
         """
         Strip suffix from label
         """
         suffix = DNSLabel(suffix)
-        if self.matchSuffix(suffix):
+        if self.match_suffix(suffix):
             return DNSLabel(self.label[: -len(suffix.label)])
         else:
             return self

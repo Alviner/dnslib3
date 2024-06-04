@@ -225,5 +225,5 @@ if __name__ == "__main__":
         )
         tcp_server.start_thread()
 
-    while udp_server.isAlive():
+    while udp_server.is_alive():
         time.sleep(1)

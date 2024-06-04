@@ -1,9 +1,7 @@
-"""
-Buffer - simple data buffer
-"""
-
 import binascii
 import struct
+
+__doc__ = """ Buffer - simple data buffer """
 
 
 class BufferError(Exception):

@@ -1,24 +1,21 @@
-"""
-DNS Client - DiG-like CLI utility.
-
-Mostly useful for testing. Can optionally compare results from two
-nameservers (--diff) or compare results against DiG (--dig).
-
-Usage: python -m dnslib.client [options|--help]
-
-See --help for usage.
-"""
-
-try:
-    from subprocess import getoutput, getstatusoutput
-except ImportError:
-    from commands import getoutput, getstatusoutput
-
 import binascii
 import code
+from subprocess import getoutput, getstatusoutput
 
 from dnslib.digparser import DigParser
 from dnslib.dns import EDNS0, QTYPE, DNSError, DNSHeader, DNSQuestion, DNSRecord
+
+__doc__ = """
+    DNS Client - DiG-like CLI utility.
+
+    Mostly useful for testing. Can optionally compare results from two
+    nameservers (--diff) or compare results against DiG (--dig).
+
+    Usage: python -m dnslib.client [options|--help]
+
+    See --help for usage.
+"""
+
 
 if __name__ == "__main__":
     import argparse
@@ -120,7 +117,9 @@ if __name__ == "__main__":
         a = DNSRecord.parse(a_pkt)
 
         if q.header.id != a.header.id:
-            raise DNSError("Response transaction id does not match query transaction id")
+            raise DNSError(
+                "Response transaction id does not match query transaction id",
+            )
 
         if a.header.tc and args.noretry == False:
             # Truncated - retry in TCP mode

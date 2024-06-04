@@ -1,57 +1,55 @@
+__doc__ = """
+    Wrapper around property builtin to restrict attribute to defined
+    integer value range (throws ValueError).
+
+    Intended to ensure that values packed with struct are in the
+    correct range
+
+    >>> class T(object):
+    ...     a = range_property('a',-100,100)
+    ...     b = B('b')
+    ...     c = H('c')
+    ...     d = I('d')
+    ...     e = instance_property('e',(int,bool))
+    >>> t = T()
+    >>> for i in [0,100,-100]:
+    ...     t.a = i
+    ...     assert t.a == i
+    >>> t.a = 101
+    Traceback (most recent call last):
+    ...
+    ValueError: Attribute 'a' must be between -100-100 [101]
+    >>> t.a = -101
+    Traceback (most recent call last):
+    ...
+    ValueError: Attribute 'a' must be between -100-100 [-101]
+    >>> t.a = 'blah'
+    Traceback (most recent call last):
+    ...
+    ValueError: Attribute 'a' must be between -100-100 [blah]
+    >>> t.e = 999
+    >>> t.e = False
+    >>> t.e = None
+    Traceback (most recent call last):
+    ...
+    ValueError: Attribute 'e' must be instance of ...
+
+    >>> check_range("test",123,0,255)
+    >>> check_range("test",999,0,255)
+    Traceback (most recent call last):
+    ...
+    ValueError: Attribute 'test' must be between 0-255 [999]
+
+    >>> check_instance("test",123,int)
+    >>> check_instance("test","xxx",int)
+    Traceback (most recent call last):
+    ...
+    ValueError: Attribute 'test' must be instance of ...
+
 """
-Wrapper around property builtin to restrict attribute to defined
-integer value range (throws ValueError).
 
-Intended to ensure that values packed with struct are in the
-correct range
 
->>> class T(object):
-...     a = range_property("a", -100, 100)
-...     b = B("b")
-...     c = H("c")
-...     d = I("d")
-...     e = instance_property("e", (int, bool))
->>> t = T()
->>> for i in [0, 100, -100]:
-...     t.a = i
-...     assert t.a == i
->>> t.a = 101
-Traceback (most recent call last):
-...
-ValueError: Attribute 'a' must be between -100-100 [101]
->>> t.a = -101
-Traceback (most recent call last):
-...
-ValueError: Attribute 'a' must be between -100-100 [-101]
->>> t.a = "blah"
-Traceback (most recent call last):
-...
-ValueError: Attribute 'a' must be between -100-100 [blah]
->>> t.e = 999
->>> t.e = False
->>> t.e = None
-Traceback (most recent call last):
-...
-ValueError: Attribute 'e' must be instance of ...
-
->>> check_range("test", 123, 0, 255)
->>> check_range("test", 999, 0, 255)
-Traceback (most recent call last):
-...
-ValueError: Attribute 'test' must be between 0-255 [999]
-
->>> check_instance("test", 123, int)
->>> check_instance("test", "xxx", int)
-Traceback (most recent call last):
-...
-ValueError: Attribute 'test' must be instance of ...
-
-"""
-
-import sys
-
-int_types = (int,)
-byte_types = (bytes, bytearray)
+BYTE_TYPES = (bytes, bytearray)
 
 
 def check_instance(name, val, types):
@@ -62,7 +60,7 @@ def check_instance(name, val, types):
 
 
 def check_bytes(name, val):
-    return check_instance(name, val, byte_types)
+    return check_instance(name, val, BYTE_TYPES)
 
 
 def instance_property(attr, types):
@@ -81,11 +79,11 @@ def instance_property(attr, types):
 
 
 def BYTES(attr):
-    return instance_property(attr, byte_types)
+    return instance_property(attr, BYTE_TYPES)
 
 
 def check_range(name, val, min, max):
-    if not (isinstance(val, int_types) and min <= val <= max):
+    if not (isinstance(val, int) and min <= val <= max):
         raise ValueError(
             "Attribute '%s' must be between %d-%d [%s]" % (name, min, max, val),
         )
@@ -96,7 +94,7 @@ def range_property(attr, min, max):
         return getattr(obj, f"_{attr}")
 
     def setter(obj, val):
-        if isinstance(val, int_types) and min <= val <= max:
+        if isinstance(val, int) and min <= val <= max:
             setattr(obj, f"_{attr}", val)
         else:
             raise ValueError(
@@ -128,7 +126,7 @@ def I(attr):
 
 
 def ntuple_range(attr, n, min, max):
-    f = lambda x: isinstance(x, int_types) and min <= x <= max
+    f = lambda x: isinstance(x, int) and min <= x <= max
 
     def getter(obj):
         return getattr(obj, f"_{attr}")
