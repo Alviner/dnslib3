@@ -11,7 +11,7 @@
     Unsupported RR types are skipped (this is different from the packet
     parser which will store and encode the RDATA as a binary blob)
 
-    >>> dig = os.path.join(os.path.dirname(__file__),"test","dig","google.com-A.dig")
+    >>> dig = os.path.join(os.path.dirname(__file__),"doctestdata","dig","google.com-A.dig")
     >>> with open(dig) as f:
     ...     l = DigParser(f)
     ...     for record in l:
@@ -40,7 +40,7 @@
     <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.158'>
     <DNS RR: 'google.com.' rtype=A rclass=IN ttl=299 rdata='62.252.169.163'>
 
-    >>> dig = os.path.join(os.path.dirname(__file__),"test","dig","google.com-ANY.dig")
+    >>> dig = os.path.join(os.path.dirname(__file__),"doctestdata","dig","google.com-ANY.dig")
     >>> with open(dig) as f:
     ...     l = DigParser(f)
     ...     for record in l:
@@ -71,11 +71,15 @@
 
 from __future__ import print_function
 
-import glob,os.path,string,re
+import glob
+import os.path
+import re
+import string
 
+from dnslib.dns import (CLASS, EDNS0, QR, QTYPE, RCODE, RD, RDMAP, RR,
+                        DNSError, DNSHeader, DNSQuestion, DNSRecord)
 from dnslib.lex import WordLexer
-from dnslib.dns import (DNSRecord,DNSHeader,DNSQuestion,DNSError,
-                        RR,RD,RDMAP,QR,RCODE,CLASS,QTYPE,EDNS0)
+
 
 class DigParser:
 
@@ -213,21 +217,3 @@ class DigParser:
                 self.parseAnswers(a,auth,ar,dns)
                 yield(dns)
 
-if __name__ == '__main__':
-
-    import argparse,doctest,sys
-
-    p = argparse.ArgumentParser(description="DigParser Test")
-    p.add_argument("--dig",action='store_true',default=False,
-                    help="Parse DiG output (stdin)")
-    p.add_argument("--debug",action='store_true',default=False,
-                    help="Debug output")
-
-    args = p.parse_args()
-
-    if args.dig:
-        l = DigParser(sys.stdin,args.debug)
-        for record in l:
-            print(repr(record))
-    else:
-        sys.exit(0 if doctest.testmod().failed == 0 else 1)
