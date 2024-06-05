@@ -30,7 +30,7 @@ build-backend = "poetry.core.masonry.api"
 python_files = "test_*"
 python_functions = "test_*"
 python_classes = "TestSuite*"
-addopts = "-p no:cacheprovider --doctest-modules --cov-report=term-missing --color=yes"
+addopts = "-p no:cacheprovider --doctest-modules --cov=dnslib --cov-report=term-missing --color=yes"
 
 [tool.coverage.report]
 skip_empty = true
