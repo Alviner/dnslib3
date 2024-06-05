@@ -1,7 +1,8 @@
+
 __doc__ = """ Some basic bit manipulation utilities """
 
-
-FILTER = bytearray([(i < 32 or i > 127) and 46 or i for i in range(256)])
+# Global tuple for ASCII characters, where i < 32 or i > 127 are replaced by '.'
+ASCII_CHARS = tuple((i < 32 or i > 127) and 46 or i for i in range(256))
 
 
 def hexdump(src, length=16, prefix=""):
@@ -17,30 +18,28 @@ def hexdump(src, length=16, prefix=""):
     0020  20 21 22 23 24 25 26 27  28 29 2a 2b 2c 2d 2e 2f   !"#$%&' ()*+,-./
 
     """
-    n = 0
-    left = length // 2
-    right = length - left
+
     result = []
     src = bytearray(src)
-    while src:
-        s, src = src[:length], src[length:]
-        l, r = s[:left], s[left:]
-        hexa = "%-*s" % (left * 3, " ".join(["%02x" % x for x in l]))
-        hexb = "%-*s" % (right * 3, " ".join(["%02x" % x for x in r]))
-        lf = l.translate(FILTER)
-        rf = r.translate(FILTER)
+    hex_template = " ".join(["{:02X}"] * 8) + "  " + " ".join(["{:02X}"] * 8)
+    ascii_template = "".join(["{}"] * (length // 2)) + " " + "".join(["{}"] * (length // 2))
+
+    for i in range(0, len(src), length):
+        chunk = src[i:i + length]
+        hex_chunk = [f"{b:02X}" for b in chunk]
+        ascii_chunk = [chr(ASCII_CHARS[b]) for b in chunk]
+
+        # Fill the rest if chunk size is less than length
+        if len(chunk) < length:
+            hex_chunk += ['  '] * (length - len(chunk))
+            ascii_chunk += [' '] * (length - len(chunk))
+
         result.append(
-            "%s%04x  %s %s %s %s"
-            % (
-                prefix,
-                n,
-                hexa,
-                hexb,
-                lf.decode(),
-                rf.decode(),
-            ),
+            f"{prefix}{i:04X}  "
+            f"{hex_template.format(*[int(h, 16) for h in hex_chunk]).lower()}  "
+            f"{ascii_template.format(*ascii_chunk)}"
         )
-        n += length
+
     return "\n".join(result)
 
 
@@ -54,8 +53,7 @@ def get_bits(data, offset, bits=1):
     '0b1100'
 
     """
-    mask = ((1 << bits) - 1) << offset
-    return (data & mask) >> offset
+    return (data >> offset) & ((1 << bits) - 1)
 
 
 def set_bits(data, value, offset, bits=1):
@@ -81,9 +79,9 @@ def binary(n, count=16, reverse=False):
 
     >>> binary(6789)
     '0001101010000101'
-    >>> binary(6789,8)
+    >>> binary(6789, 8)
     '10000101'
-    >>> binary(6789,reverse=True)
+    >>> binary(6789, reverse=True)
     '1010000101011000'
 
     """
