@@ -1,5 +1,9 @@
 # Dnslib3
 
+[![pypi](https://img.shields.io/pypi/v/dnslib3)](https://img.shields.io/pypi/v/dnslib3)
+[![tests](https://github.com/Alviner/dnslib3/actions/workflows/test.yml/badge.svg)](https://github.com/Alviner/dnslib3/actions/workflows/test.yml)
+[![Coverage Status](https://coveralls.io/repos/github/Alviner/dnslib3/badge.svg?branch=master)](https://coveralls.io/github/Alviner/dnslib3?branch=master)
+
 A library to encode/decode DNS wire-format packets.
 
 The library provides:
