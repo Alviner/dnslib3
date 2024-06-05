@@ -389,13 +389,3 @@ The library includes a number of client utilities:
 ## License
 
 BSD
-
-## Author
-
-- PaulC
-
-## Master Repository/Issues
-
-- <https://github.com/paulc/dnslib>
-
-(Note: <https://bitbucket.org/paulc/dnslib> has been deprecated and will not be updated)
