@@ -1,16 +1,10 @@
-import argparse
 import binascii
-import code
-import glob
-import os
-import os.path
 import pathlib
-from subprocess import getoutput
 
 import pytest
 
 from dnslib.digparser import DigParser
-from dnslib.dns import EDNS0, DNSRecord
+from dnslib.dns import DNSRecord
 
 
 TESTS_ROOT = pathlib.Path(__file__).parent

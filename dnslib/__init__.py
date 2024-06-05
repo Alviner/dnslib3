@@ -186,6 +186,7 @@ It is also possible to create RRs from a string in zone file format
 The zone file can contain multiple entries and supports most of the normal
 format defined in RFC1035 (specifically not $INCLUDE)
 
+    >>> import textwrap
     >>> z = '''
     ...         $TTL 300
     ...         $ORIGIN abc.com
