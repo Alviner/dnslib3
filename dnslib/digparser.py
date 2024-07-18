@@ -1,11 +1,13 @@
 import re
 import string
+from typing import TypedDict
 
 from dnslib.dns import (
     CLASS, EDNS0, QR, QTYPE, RCODE, RD, RDMAP, RR, DNSError, DNSHeader,
     DNSQuestion, DNSRecord,
 )
 from dnslib.lex import WordLexer
+
 
 
 __doc__ = """
